@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Shop — New Approach{% endblock %}
+
+{% block body %}
+<div class="mx-auto max-w-7xl px-6 py-10">
+    <div class="flex items-end justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">{% if q %}Results for "{{ q }}"{% else %}All products{% endif %}</h1>
+            <p class="text-neutral-500 text-sm mt-1">{{ products|length }} product{{ products|length|pluralize }}</p>
+        </div>
+        <form method="get" class="flex gap-2">
+            {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+            {% if current_brand %}<input type="hidden" name="brand" value="{{ current_brand }}">{% endif %}
+            {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+            <select name="sort" onchange="this.form.submit()" class="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm">
+                <option value="">Sort: Newest</option>
+                <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: low to high</option>
+                <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: high to low</option>
+                <option value="name_asc" {% if sort == "name_asc" %}selected{% endif %}>Name: A–Z</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="grid md:grid-cols-[220px_1fr] gap-8">
+        <aside class="hidden md:block">
+            <div class="sticky top-20 space-y-6">
+                <div>
+                    <div class="font-semibold mb-3 text-sm uppercase tracking-wide text-neutral-500">Categories</div>
+                    <ul class="space-y-1 text-sm">
+                        <li><a href="{% url 'catalog:product_list' %}" class="{% if not current_category %}text-brand font-medium{% else %}text-neutral-700 hover:text-brand{% endif %}">All</a></li>
+                        {% for c in categories %}
+                        <li><a href="?category={{ c.slug }}" class="{% if current_category == c.slug %}text-brand font-medium{% else %}text-neutral-700 hover:text-brand{% endif %}">{{ c.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% if brands %}
+                <div>
+                    <div class="font-semibold mb-3 text-sm uppercase tracking-wide text-neutral-500">Brands</div>
+                    <ul class="space-y-1 text-sm">
+                        {% for b in brands %}
+                        <li><a href="?brand={{ b }}" class="{% if current_brand == b %}text-brand font-medium{% else %}text-neutral-700 hover:text-brand{% endif %}">{{ b }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <div>
+            {% if products %}
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {% for product in products %}{% include "partials/product_card.html" %}{% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-20 bg-white rounded-2xl border border-neutral-100">
+                    <div class="text-5xl mb-4">🔎</div>
+                    <div class="font-semibold text-lg">No products match</div>
+                    <div class="text-sm text-neutral-500 mt-1">Try adjusting filters or searching for something else.</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

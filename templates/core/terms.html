@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Terms & Refund Policy — {{ BRAND.name }}{% endblock %}
+
+{% block body %}
+<div class="mx-auto max-w-3xl px-6 py-12">
+    <div class="text-xs uppercase tracking-widest text-brand font-semibold">Legal</div>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold">Refund & Returns Policy</h1>
+    <p class="mt-2 text-neutral-500">Last updated: {% now "F Y" %}</p>
+
+    <div class="mt-10 space-y-8 text-neutral-700 leading-relaxed">
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-900 mb-2">1. Sales are final</h2>
+            <p>All sales at {{ BRAND.legal_name }} are final. Once a purchase is completed, we do <strong>not offer refunds</strong> on any product.</p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-900 mb-2">2. No replacements on used items</h2>
+            <p>We do not provide replacements for products that have been used after purchase. Inspect items at the time of delivery.</p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-900 mb-2">3. Warranty conditions</h2>
+            <ul class="list-disc pl-6 space-y-2">
+                <li>The warranty seal must remain intact. Any tampering voids the warranty.</li>
+                <li><strong>No warranty</strong> on LCD screens, cameras, or batteries.</li>
+                <li><strong>Water damage is excluded</strong> from all warranty claims.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-900 mb-2">4. VAT</h2>
+            <p>{{ BRAND.vat_note }}.</p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-900 mb-2">5. Returns window</h2>
+            <p>If a product arrives damaged or faulty, contact us within <strong>{{ BRAND.return_window_days }} days</strong> of delivery via WhatsApp or email and we'll arrange an inspection. Items must be in original packaging and unused.</p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-900 mb-2">6. Contact</h2>
+            <p>Questions? Reach us at <a href="mailto:{{ BRAND.email }}" class="text-brand hover:underline">{{ BRAND.email }}</a> or WhatsApp <a href="https://wa.me/{{ BRAND.whatsapp_number }}" class="text-brand hover:underline">{{ BRAND.phone_primary }}</a>.</p>
+        </section>
+    </div>
+</div>
+{% endblock %}

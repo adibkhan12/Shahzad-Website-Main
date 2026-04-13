@@ -1,0 +1,6 @@
+{% comment %}Render rating as filled/empty stars. Pass `rating` (0-5).{% endcomment %}
+<span class="inline-flex text-amber-400 text-sm">
+{% for i in "12345" %}
+    {% if forloop.counter <= rating %}★{% else %}<span class="text-neutral-300">★</span>{% endif %}
+{% endfor %}
+</span>

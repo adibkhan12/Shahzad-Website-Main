@@ -1,0 +1,20 @@
+Hi {{ order.name }},
+
+Thank you for your order #{{ order.short_ref }}.
+
+Items:
+{% for item in order.items.all %}- {{ item.title }} × {{ item.quantity }} — {{ order.currency }} {{ item.line_total|floatformat:2 }}
+{% endfor %}
+Total: {{ order.currency }} {{ order.total|floatformat:2 }}
+Payment: {{ order.get_payment_method_display }}
+Status: {{ order.get_status_display }}
+
+Shipping to:
+{{ order.address_line1 }}{% if order.address_line2 %}, {{ order.address_line2 }}{% endif %}
+{{ order.city }}{% if order.postal_code %} {{ order.postal_code }}{% endif %}, {{ order.country }}
+
+Track your order:
+{{ SITE_URL }}/orders/{{ order.reference }}/
+
+Thanks for shopping with us.
+— New Approach

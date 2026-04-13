@@ -1,0 +1,13 @@
+{% if order.status == "paid" %}
+    <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Paid</span>
+{% elif order.status == "shipped" %}
+    <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-700">Shipped</span>
+{% elif order.status == "delivered" %}
+    <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Delivered</span>
+{% elif order.status == "cancelled" %}
+    <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Cancelled</span>
+{% elif order.status == "failed" %}
+    <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Failed</span>
+{% else %}
+    <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Pending</span>
+{% endif %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Wishlist{% endblock %}
+{% block body %}
+<div class="mx-auto max-w-7xl px-6 py-10">
+    <h1 class="text-3xl font-bold mb-8">Your wishlist</h1>
+    {% if items %}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for w in items %}{% with product=w.product %}{% include "partials/product_card.html" %}{% endwith %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20 bg-white rounded-2xl border border-neutral-100">
+        <div class="text-6xl mb-4">♡</div>
+        <div class="font-semibold text-lg">No saved items yet</div>
+        <a href="{% url 'catalog:product_list' %}" class="mt-6 inline-block bg-brand text-white px-6 py-3 rounded-full">Find something to love</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

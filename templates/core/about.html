@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}About — {{ BRAND.name }}{% endblock %}
+
+{% block body %}
+<section class="bg-gradient-to-br from-brand-50 via-white to-amber-50">
+    <div class="mx-auto max-w-4xl px-6 py-20">
+        <div class="text-xs uppercase tracking-widest text-brand font-semibold">About</div>
+        <h1 class="mt-2 text-4xl md:text-5xl font-bold tracking-tight">{{ BRAND.legal_name }}</h1>
+        <p class="mt-4 text-lg text-neutral-600">Sharjah's trusted destination for the latest mobiles, laptops and on-the-spot repairs — with the personal service of a family-run shop.</p>
+    </div>
+</section>
+
+<div class="mx-auto max-w-4xl px-6 py-12 prose prose-neutral">
+    <h2>Who we are</h2>
+    <p><strong>Shahzad Arshad</strong> is the founder and driving force behind this electronics platform. With a passion for technology, innovation, and customer satisfaction, Shahzad has built a reputation for delivering quality products and exceptional service.</p>
+
+    <p>From our store at <strong>Rolla Mall, Sharjah</strong>, we've helped thousands of customers across the UAE choose, set up, and maintain the devices they use every day — phones, laptops, tablets, audio gear and accessories from every major brand.</p>
+
+    <h2>What we believe</h2>
+    <p>We believe in making electronics shopping <em>easy</em>, <em>secure</em>, and <em>accessible</em> for everyone. Our vision is to give you a seamless experience from browsing to checkout — and beyond, with our in-house repair centre that gets you back up and running fast.</p>
+
+    <h2>Visit us</h2>
+    <div class="not-prose mt-4 grid md:grid-cols-2 gap-6">
+        <div class="bg-white border border-neutral-100 rounded-2xl p-6">
+            <div class="font-semibold mb-2">📍 Store</div>
+            <div class="text-neutral-700">{{ BRAND.address_line1 }}<br>{{ BRAND.address_line2 }}<br>{{ BRAND.country }}</div>
+        </div>
+        <div class="bg-white border border-neutral-100 rounded-2xl p-6">
+            <div class="font-semibold mb-2">⏰ Hours</div>
+            <div class="text-neutral-700">{{ BRAND.hours }}</div>
+            <div class="font-semibold mt-4 mb-2">📞 Reach us</div>
+            <div class="text-sm text-neutral-700">
+                <a href="tel:{{ BRAND.phone_primary }}" class="block hover:text-brand">{{ BRAND.phone_primary }} (WhatsApp)</a>
+                <a href="tel:{{ BRAND.phone_secondary }}" class="block hover:text-brand">{{ BRAND.phone_secondary }}</a>
+                <a href="mailto:{{ BRAND.email }}" class="block hover:text-brand">{{ BRAND.email }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

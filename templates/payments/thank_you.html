@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Thank you — Order {{ order.short_ref }}{% endblock %}
+{% block body %}
+<div class="mx-auto max-w-3xl px-6 py-16 text-center">
+    <div class="w-20 h-20 rounded-full bg-green-100 text-green-600 mx-auto flex items-center justify-center text-4xl">✓</div>
+    <h1 class="mt-6 text-3xl md:text-4xl font-bold">Thank you, {{ order.name }}!</h1>
+    <p class="mt-2 text-neutral-600">Your order <span class="font-mono font-semibold text-neutral-900">#{{ order.short_ref }}</span> has been placed.</p>
+
+    <div class="mt-10 text-left bg-white rounded-2xl border border-neutral-100 p-6">
+        <div class="flex justify-between flex-wrap gap-3">
+            <div>
+                <div class="text-xs uppercase tracking-wide text-neutral-400">Payment</div>
+                <div class="font-medium">{{ order.get_payment_method_display }}</div>
+            </div>
+            <div>
+                <div class="text-xs uppercase tracking-wide text-neutral-400">Status</div>
+                <div class="font-medium">{{ order.get_status_display }}</div>
+            </div>
+            <div>
+                <div class="text-xs uppercase tracking-wide text-neutral-400">Total</div>
+                <div class="font-medium">{{ order.currency }} {{ order.total|floatformat:2 }}</div>
+            </div>
+        </div>
+        <hr class="my-5 border-neutral-100">
+        <ul class="divide-y divide-neutral-100">
+            {% for item in order.items.all %}
+            <li class="py-3 flex gap-3 items-center">
+                <div class="w-14 h-14 rounded-lg overflow-hidden bg-neutral-100 shrink-0">{% if item.image %}<img src="{{ item.image }}" class="w-full h-full object-cover">{% endif %}</div>
+                <div class="flex-1"><div class="font-medium">{{ item.title }}</div><div class="text-xs text-neutral-500">Qty {{ item.quantity }}</div></div>
+                <div class="font-semibold">{{ order.currency }} {{ item.line_total|floatformat:2 }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="mt-8 flex gap-3 justify-center">
+        <a href="{% url 'orders:detail' order.reference %}" class="px-6 py-3 rounded-full border border-neutral-200 hover:border-brand hover:text-brand transition">View order</a>
+        <a href="{% url 'catalog:home' %}" class="px-6 py-3 rounded-full bg-brand hover:bg-brand-700 text-white transition">Keep shopping</a>
+    </div>
+</div>
+{% endblock %}
