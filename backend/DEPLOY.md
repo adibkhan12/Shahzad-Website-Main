@@ -20,7 +20,7 @@ The whole stack runs in three Docker containers: **Postgres**, **Django/gunicorn
 
 ```bash
 # 1. Clone the project to the server
-git clone <your-repo-url> /opt/shahzadmobile && cd /opt/shahzadmobile/"New Approach"
+git clone <your-repo-url> /opt/shahzadmobile && cd /opt/shahzadmobile
 
 # 2. Create the production env file
 cp .env.prod.example .env.prod
@@ -61,7 +61,7 @@ docker compose restart nginx
 ```
 Set up auto-renewal:
 ```bash
-echo "0 3 * * * certbot renew --quiet && docker compose -f /opt/shahzadmobile/'New Approach'/docker-compose.yml restart nginx" | sudo crontab -
+echo "0 3 * * * certbot renew --quiet && docker compose -f /opt/shahzadmobile/docker-compose.yml restart nginx" | sudo crontab -
 ```
 
 ---

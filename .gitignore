@@ -15,3 +15,10 @@ node_modules/
 theme/static/
 theme/static_src/node_modules/
 *.log
+.qodo/
+.env.prod
+frontend/dist/
+frontend/.angular/
+coverage/
+.pytest_cache/
+*.sqlite3-journal
