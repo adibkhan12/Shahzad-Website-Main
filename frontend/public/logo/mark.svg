@@ -1,0 +1,15 @@
+<!--
+  Shahzad Mobile — MARK (outlined SM monogram, no frame)
+  Use currentColor so the mark inherits text colour. Best for monochrome
+  contexts (navs, print, embossing).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
+     fill="none" stroke="currentColor"
+     stroke-width="4.25" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Shahzad Mobile">
+  <title>Shahzad Mobile</title>
+  <!-- Block S: 3 horizontals + 2 off-set verticals -->
+  <path d="M 28 14 L 10 14 L 10 30 L 28 30 L 28 46 L 10 46"/>
+  <!-- Sharp-peaked M -->
+  <path d="M 34 46 L 34 14 L 44 30 L 54 14 L 54 46"/>
+</svg>

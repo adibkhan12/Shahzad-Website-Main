@@ -1,0 +1,1010 @@
+/* ════════════════════════════════════════════════════════════════
+   SHAHZAD — DESIGN SYSTEM
+   ────────────────────────────────────────────────────────────────
+   Premium resale. Ivory canvas. Deep ink. One considered accent.
+   Typography lives in serif display, Inter UI, tabular numerals.
+   Motion is unhurried (cubic-bezier(0.22,1,0.36,1)) with reduced-
+   motion honoured. Mobile-first via fluid clamps, responsive
+   container padding, and progressive enhancement for glass.
+   ════════════════════════════════════════════════════════════════ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── 1 · Design tokens ─────────────────────────────────────────── */
+:root {
+  /* Neutrals — a warm ivory canvas with deep off-black ink. Intentionally
+     never pure #FFF or #000; avoids that cheap “fresh-install” feel. */
+  --c-bg:         #FAFAF7;
+  --c-surface:    #FFFFFF;
+  --c-surface-2:  #FDFCFA;
+  --c-line:       #E8E5DF;
+  --c-line-soft:  #F0EDE7;
+  --c-muted:      #78716C;
+  --c-ink:        #0A0908;
+  --c-ink-2:      #1C1917;
+
+  /* Accent — used sparingly, always for intent. */
+  --c-accent:       #740DC2;
+  --c-accent-2:     #8B2BDB;
+  --c-accent-deep:  #3D1766;
+  --c-accent-mist:  #F4EEFB;
+  --c-accent-glow:  rgba(116, 13, 194, 0.18);
+
+  /* Semantic */
+  --c-sale:    #C2410C;
+  --c-success: #047857;
+  --c-warn:    #B45309;
+  --c-danger:  #B91C1C;
+
+  /* Elevation — warm-biased, not cold grey. */
+  --e-1: 0 1px 2px rgba(28,25,23,0.04);
+  --e-2: 0 2px 6px rgba(28,25,23,0.05), 0 4px 14px rgba(28,25,23,0.04);
+  --e-3: 0 6px 16px rgba(28,25,23,0.06), 0 24px 48px rgba(28,25,23,0.08);
+  --e-glow: 0 10px 40px -10px var(--c-accent-glow);
+
+  /* Motion */
+  --ease:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:  cubic-bezier(0.76, 0, 0.24, 1);
+  --dur-1: 250ms;
+  --dur-2: 500ms;
+  --dur-3: 900ms;
+
+  /* Shape */
+  --r-sm:  10px;
+  --r-md:  14px;
+  --r-lg:  22px;
+  --r-xl:  28px;
+
+  /* Layout */
+  --container: 1280px;
+  --nav-h:     64px;
+}
+
+/* ── 2 · Reset & base ──────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  color: var(--c-ink);
+  font: 400 15.5px/1.55 'Inter', ui-sans-serif, system-ui, -apple-system,
+        'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv11' 1, 'ss01' 1, 'ss03' 1, 'cv09' 1;
+  background: var(--c-bg);
+  /* Atmospheric wash — barely perceptible, gives the page warmth & depth
+     without fighting content. Three radial glows, fixed to viewport. */
+  background-image:
+    radial-gradient(1200px 620px at 88% -8%,
+      color-mix(in oklab, var(--c-accent) 7%, transparent), transparent 58%),
+    radial-gradient(900px 520px at -6% 22%,
+      color-mix(in oklab, #F5D79A 22%, transparent), transparent 60%),
+    radial-gradient(1000px 680px at 50% 110%,
+      color-mix(in oklab, var(--c-accent) 5%, transparent), transparent 70%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+img, svg, video { display: block; max-width: 100%; }
+
+::selection { background: var(--c-ink); color: var(--c-bg); }
+::-moz-selection { background: var(--c-ink); color: var(--c-bg); }
+
+/* Focus — brand halo instead of the default blue ring. */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid var(--c-ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 6px var(--c-accent-glow);
+}
+
+/* Scrollbar — discreet, warm. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--c-ink) 16%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--c-ink) 30%, transparent);
+  background-clip: content-box;
+}
+
+/* ── 3 · Typography ────────────────────────────────────────────── */
+.display {
+  font-family: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+/* Fluid display scale — sized with clamp() so it breathes mobile → desktop */
+.h-1 { font-size: clamp(2.75rem, 1rem + 6vw, 6.25rem); }
+.h-2 { font-size: clamp(2rem,    1rem + 4vw, 4.25rem); }
+.h-3 { font-size: clamp(1.5rem,  0.9rem + 2.5vw, 2.75rem); }
+.h-4 { font-size: clamp(1.25rem, 0.9rem + 1.5vw, 2rem); }
+
+/* Eyebrow label — the quiet voice that sits above every headline. */
+.eyebrow {
+  font-size: 11px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 500;
+  color: var(--c-muted);
+}
+
+/* Price / reference / numbers — tabular for alignment, monospace-ish feel. */
+.nums, .price {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'cv11' 1;
+  letter-spacing: -0.005em;
+}
+
+/* Prose helpers */
+.text-muted { color: var(--c-muted); }
+.text-ink { color: var(--c-ink); }
+.text-accent { color: var(--c-accent-deep); }
+
+/* ── 4 · Layout primitives ─────────────────────────────────────── */
+.container-x {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 768px)  { .container-x { padding-inline: 1.5rem; } }
+@media (min-width: 1280px) { .container-x { padding-inline: 2rem;   } }
+
+.section       { padding-block: clamp(3rem, 6vw, 7rem); }
+.section-tight { padding-block: clamp(2rem, 4vw, 4.5rem); }
+
+.hairline { border: 0; border-top: 1px solid var(--c-line); }
+
+/* Thin divider with brand highlight */
+.rule-accent {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-line) 20%, var(--c-line) 80%, transparent);
+}
+
+/* ── 5 · Components ────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Link with draw-underline micro-interaction ─────────────── */
+  .link-underline {
+    position: relative;
+    display: inline-block;
+    color: currentColor;
+    text-decoration: none;
+  }
+  .link-underline::after {
+    content: '';
+    position: absolute; left: 0; right: 0; bottom: -2px;
+    height: 1px; background: currentColor;
+    transform: scaleX(0); transform-origin: right;
+    transition: transform 450ms var(--ease);
+  }
+  .link-underline:hover::after { transform: scaleX(1); transform-origin: left; }
+
+  /* ── Buttons ────────────────────────────────────────────────── */
+  /* Base — applies to .btn AND every modifier class, so you can drop a single
+     class (e.g. `.btn-primary`) and still get the shape, padding, and motion. */
+  .btn,
+  .btn-primary,
+  .btn-brand,
+  .btn-outline {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.2rem;
+    font: 500 14px/1 'Inter', sans-serif;
+    letter-spacing: -0.005em;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition:
+      background-image var(--dur-2) var(--ease),
+      background-color var(--dur-2) var(--ease),
+      color var(--dur-1) var(--ease),
+      border-color var(--dur-1) var(--ease),
+      box-shadow var(--dur-2) var(--ease),
+      transform 220ms var(--ease);
+  }
+  .btn:active,
+  .btn-primary:active,
+  .btn-brand:active,
+  .btn-outline:active { transform: translateY(0) scale(0.985); }
+  .btn:disabled,
+  .btn-primary:disabled,
+  .btn-brand:disabled,
+  .btn-outline:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Primary — ink → plum on hover. The “hero” action. */
+  .btn-primary {
+    color: var(--c-bg);
+    background-image: linear-gradient(140deg, var(--c-ink) 0%, var(--c-ink-2) 55%, #2A1045 100%);
+    box-shadow: var(--e-1);
+  }
+  .btn-primary:hover {
+    background-image: linear-gradient(140deg, var(--c-ink-2) 0%, #2A1045 35%, var(--c-accent-deep) 100%);
+    box-shadow: var(--e-glow);
+    transform: translateY(-1px);
+  }
+
+  /* Brand — purple gradient, for secondary hero moments. */
+  .btn-brand {
+    color: #fff;
+    background-image: linear-gradient(140deg, var(--c-accent-deep) 0%, var(--c-accent) 60%, var(--c-accent-2) 100%);
+    box-shadow: var(--e-1);
+  }
+  .btn-brand:hover {
+    background-image: linear-gradient(140deg, var(--c-accent) 0%, var(--c-accent-2) 60%, #C084FC 100%);
+    /* Dual-tone halo: violet inner, blue outer — reflects the page backdrop */
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--c-accent) 35%, transparent),
+      0 10px 28px -8px rgba(168, 85, 247, 0.45),
+      0 22px 56px -18px rgba(96, 165, 250, 0.35);
+    transform: translateY(-1px);
+  }
+
+  /* Outline — understated, line-first. */
+  .btn-outline {
+    color: var(--c-ink);
+    background: var(--c-surface);
+    border-color: var(--c-line);
+  }
+  .btn-outline:hover {
+    border-color: var(--c-ink);
+    background: var(--c-surface-2);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--c-ink) 6%, transparent);
+  }
+
+  /* Ghost */
+  .btn-ghost { color: var(--c-ink); background: transparent; }
+  .btn-ghost:hover { background: color-mix(in oklab, var(--c-ink) 6%, transparent); }
+
+  /* ── Inputs ────────────────────────────────────────────────── */
+  .input {
+    display: block; width: 100%;
+    padding: 0.7rem 1rem;
+    font: 400 14px/1.4 'Inter', sans-serif;
+    color: var(--c-ink);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-sm);
+    transition:
+      border-color var(--dur-1) var(--ease),
+      background var(--dur-1) var(--ease),
+      box-shadow var(--dur-1) var(--ease);
+  }
+  .input::placeholder { color: color-mix(in oklab, var(--c-muted) 80%, transparent); }
+  .input:hover  { border-color: color-mix(in oklab, var(--c-ink) 20%, var(--c-line)); }
+  .input:focus  {
+    outline: none;
+    border-color: var(--c-ink);
+    box-shadow: 0 0 0 4px var(--c-accent-glow);
+    background: var(--c-surface);
+  }
+  .label {
+    display: block;
+    font-size: 11px; font-weight: 500;
+    color: var(--c-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Cards ─────────────────────────────────────────────────── */
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+    box-shadow: var(--e-1);
+    transition:
+      border-color var(--dur-2) var(--ease),
+      box-shadow var(--dur-2) var(--ease),
+      transform var(--dur-2) var(--ease),
+      background-image var(--dur-3) var(--ease);
+  }
+  .card-lift:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--c-accent) 30%, var(--c-line));
+    /* Elevation + dual-tone ambient ring when on the cinematic dark bg */
+    box-shadow:
+      var(--e-3),
+      0 0 0 1px color-mix(in oklab, var(--c-accent) 15%, transparent),
+      0 16px 48px -16px var(--c-accent-glow-2, var(--c-accent-glow));
+    background-image: linear-gradient(180deg, var(--c-surface) 0%, var(--c-accent-mist) 280%);
+  }
+
+  /* ── Chip ──────────────────────────────────────────────────── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.75rem;
+    font-size: 12px; font-weight: 500;
+    color: var(--c-ink-2);
+    background: color-mix(in oklab, var(--c-ink) 4%, var(--c-surface));
+    border: 1px solid color-mix(in oklab, var(--c-ink) 6%, var(--c-line));
+    border-radius: 999px;
+    transition:
+      background var(--dur-1) var(--ease),
+      color var(--dur-1) var(--ease),
+      border-color var(--dur-1) var(--ease),
+      transform 180ms var(--ease);
+  }
+  .chip:hover:not(.chip-active) {
+    background: var(--c-accent-mist);
+    color: var(--c-accent-deep);
+    border-color: color-mix(in oklab, var(--c-accent) 20%, var(--c-line));
+    transform: translateY(-1px);
+  }
+  .chip-active {
+    color: var(--c-bg);
+    background: var(--c-ink);
+    border-color: var(--c-ink);
+  }
+
+  /* ── Pricing — typographic treatment ───────────────────────── */
+  .price          { font-weight: 600; }
+  .price-sale     { color: var(--c-sale); }
+  .price-was      { text-decoration: line-through; color: var(--c-muted); font-size: 0.8em; font-weight: 400; }
+  .price-big      { font-size: clamp(1.5rem, 0.9rem + 1.5vw, 2rem); line-height: 1; letter-spacing: -0.02em; }
+
+  /* ── Glass navigation ──────────────────────────────────────── */
+  /* Applied to the outer <header>. Starts invisible, thickens on scroll. */
+  .nav-glass {
+    position: sticky; top: 0; z-index: 50;
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    transition:
+      background var(--dur-2) var(--ease),
+      backdrop-filter var(--dur-2) var(--ease),
+      -webkit-backdrop-filter var(--dur-2) var(--ease),
+      border-color var(--dur-2) var(--ease);
+  }
+  .nav-glass.is-scrolled {
+    background: color-mix(in oklab, var(--c-bg) 72%, transparent);
+    border-bottom-color: var(--c-line);
+  }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .nav-glass.is-scrolled {
+      background: color-mix(in oklab, var(--c-bg) 58%, transparent);
+      backdrop-filter: saturate(180%) blur(16px);
+      -webkit-backdrop-filter: saturate(180%) blur(16px);
+    }
+  }
+
+  /* ── Cursor-reactive ambient glow (opt-in via .cursor-glow) ── */
+  .cursor-glow { position: relative; isolation: isolate; }
+  .cursor-glow::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+                                var(--c-accent-glow), transparent 70%);
+    opacity: 0;
+    transition: opacity 350ms var(--ease);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .cursor-glow:hover::before { opacity: 1; }
+
+  /* Register --mx / --my as real percentages so CSS can smoothly interpolate
+     them inside the hero orbit keyframes. Safari 16.4+, FF 128+. Older browsers
+     still work — just step between keyframes instead of tweening. */
+  @property --mx {
+    syntax: '<percentage>';
+    inherits: true;
+    initial-value: -999%;
+  }
+  @property --my {
+    syntax: '<percentage>';
+    inherits: true;
+    initial-value: -999%;
+  }
+
+  /* ── Hero cursor-reveal: desaturated by default, original colors bloom under pointer ── */
+  .hero-reveal {
+    position: relative;
+    isolation: isolate;
+    cursor: crosshair;
+  }
+  .hero-reveal .hero-base,
+  .hero-reveal .hero-desat {
+    transition: transform 6000ms var(--ease);
+  }
+  .hero-reveal:hover .hero-base,
+  .hero-reveal:hover .hero-desat {
+    transform: scale(1.04);
+  }
+  .hero-reveal .hero-desat {
+    filter: grayscale(1) brightness(0.72) contrast(1.04);
+    -webkit-mask-image: radial-gradient(circle 380px at var(--mx, -999px) var(--my, -999px),
+                                        transparent 0%,
+                                        transparent 18%,
+                                        rgba(0,0,0,0.55) 48%,
+                                        #000 88%);
+            mask-image: radial-gradient(circle 380px at var(--mx, -999px) var(--my, -999px),
+                                        transparent 0%,
+                                        transparent 18%,
+                                        rgba(0,0,0,0.55) 48%,
+                                        #000 88%);
+    will-change: mask-image;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-reveal .hero-desat { filter: none; -webkit-mask-image: none; mask-image: none; }
+  }
+
+  /* ── Touch devices: ambient orbiting spotlight so mobile users don't miss
+     the reveal. Finger-touch overrides via the .is-touching class (JS). ── */
+  @keyframes heroOrbit {
+    0%    { --mx: 28%; --my: 32%; }
+    12.5% { --mx: 50%; --my: 22%; }
+    25%   { --mx: 72%; --my: 28%; }
+    37.5% { --mx: 80%; --my: 50%; }
+    50%   { --mx: 72%; --my: 72%; }
+    62.5% { --mx: 50%; --my: 78%; }
+    75%   { --mx: 28%; --my: 72%; }
+    87.5% { --mx: 20%; --my: 50%; }
+    100%  { --mx: 28%; --my: 32%; }
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .hero-reveal:not(.is-touching) {
+      animation: heroOrbit 9s ease-in-out infinite;
+    }
+    .hero-reveal { cursor: default; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-reveal { animation: none !important; }
+  }
+
+
+  /* ── Product-card specific structural polish (applied via Tailwind group) */
+  /* The card itself stays utility-first; these rules just upgrade the
+     visual baseline without touching templates. */
+  .group:has(> a[href*="/products/"]) {  /* minor: leave default */ }
+
+  /* ── Dark section utility ─────────────────────────────────── */
+  .on-dark {
+    color: var(--c-bg);
+    background:
+      radial-gradient(600px 300px at 20% 0%, rgba(255,255,255,0.05), transparent 60%),
+      linear-gradient(135deg, #0A0908 0%, #1A120E 40%, #2A1045 100%);
+  }
+  .on-dark .eyebrow { color: rgba(255,255,255,0.55); }
+  .on-dark ::selection { background: var(--c-bg); color: var(--c-ink); }
+}
+
+/* ── 6 · Animations ────────────────────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.animate-fade-in { animation: fadeIn 900ms var(--ease) both; }
+.animate-slide-up { animation: rise 1100ms var(--ease) both; }
+
+/* Skeleton loader (use on loading states) */
+.skeleton {
+  background: linear-gradient(90deg,
+    color-mix(in oklab, var(--c-ink) 3%, transparent) 0%,
+    color-mix(in oklab, var(--c-ink) 6%, transparent) 50%,
+    color-mix(in oklab, var(--c-ink) 3%, transparent) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: var(--r-sm);
+}
+
+/* ── 7 · Respect user preferences ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FUTURISTIC LAYER  —  dark theme + interactive depth
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 8 · Dark-mode tokens ──────────────────────────────────────── */
+/* Cinematic night composition: deep plum-violet LEFT, cool blue "sea"
+   CENTER-RIGHT, warm peach bloom anchoring the BOTTOM.
+   Never pure black — every surface carries a hint of temperature so the
+   UI feels atmospheric, not dead. */
+[data-theme="dark"] {
+  /* Neutrals biased toward deep indigo/navy, not pure graphite. */
+  --c-bg:         #0A0B1A;
+  --c-surface:    #12152B;
+  --c-surface-2:  #191D36;
+  --c-line:       #272A44;
+  --c-line-soft:  #1E2138;
+  --c-muted:      #9AA0B8;
+  --c-ink:        #F5F5F7;
+  --c-ink-2:      #E8E9EF;
+
+  /* Two accents: violet (primary) + sky-blue (secondary). Together they
+     mirror the backdrop so hovers feel "from the world". */
+  --c-accent:        #A855F7;
+  --c-accent-2:      #60A5FA;
+  --c-accent-deep:   #7C3AED;
+  --c-accent-mist:   rgba(168, 85, 247, 0.18);
+  --c-accent-glow:   rgba(168, 85, 247, 0.42);
+  --c-accent-glow-2: rgba(96, 165, 250, 0.32);
+  --c-peach-glow:    rgba(255, 179, 138, 0.12);
+
+  --e-1: 0 1px 2px rgba(0,0,0,0.45);
+  --e-2: 0 2px 6px rgba(0,0,0,0.50), 0 4px 14px rgba(0,0,0,0.40);
+  --e-3: 0 6px 16px rgba(0,0,0,0.55), 0 24px 48px rgba(0,0,0,0.55);
+  /* Composite hover glow: purple core + blue outer rim for depth. */
+  --e-glow:
+    0 0 0 1px color-mix(in oklab, var(--c-accent) 30%, transparent),
+    0 10px 32px -8px var(--c-accent-glow),
+    0 24px 60px -20px var(--c-accent-glow-2);
+}
+
+/* Fixed background LAYER (not body) so we can drift it cheaply and avoid
+   repainting page content. Three low-opacity radials over a deep indigo
+   base — composited into a single GPU layer. */
+[data-theme="dark"] body { background-color: var(--c-bg); background-image: none; }
+[data-theme="dark"] body::before {
+  content: '';
+  position: fixed;
+  inset: -4%;                       /* overscan so drift never reveals edges */
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--c-bg);
+  background-image:
+    /* Peach bloom anchoring the bottom — the warm grounding note. */
+    radial-gradient(1200px 520px at 52% 108%,
+      var(--c-peach-glow), transparent 65%),
+    /* Cool blue "sea", centre-right. */
+    radial-gradient(950px 760px at 82% 46%,
+      rgba(18, 58, 92, 0.88), transparent 72%),
+    /* Mid-violet weaving between the purple and blue regions. */
+    radial-gradient(900px 700px at 48% 38%,
+      rgba(76, 40, 122, 0.55), transparent 70%),
+    /* Deep plum-purple shadow top-left — the cinematic vignette. */
+    radial-gradient(1100px 950px at 8% 2%,
+      rgba(42, 27, 77, 0.98), transparent 72%);
+  animation: auroraDrift 48s ease-in-out infinite alternate;
+  will-change: transform;
+  transform: translateZ(0);
+}
+@keyframes auroraDrift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(1.2%, -0.8%, 0) scale(1.025); }
+  100% { transform: translate3d(-0.6%, 0.6%, 0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="dark"] body::before { animation: none !important; }
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--c-ink) 20%, transparent);
+  background-clip: content-box;
+}
+
+/* `.on-dark` blocks (footer, CTA strips) inherit the cinematic palette
+   so they feel continuous with the page instead of stamped-on panels. */
+.on-dark {
+  color: #F5F5F7;
+  background:
+    radial-gradient(700px 320px at 10% 0%, rgba(76, 40, 122, 0.85), transparent 65%),
+    radial-gradient(600px 380px at 95% 80%, rgba(18, 58, 92, 0.85), transparent 70%),
+    radial-gradient(500px 260px at 50% 110%, rgba(255, 179, 138, 0.12), transparent 60%),
+    linear-gradient(135deg, #120F25 0%, #0E1730 55%, #0B1F38 100%);
+}
+.on-dark .eyebrow { color: rgba(255,255,255,0.55); }
+.on-dark ::selection { background: #F5F5F7; color: #0A0B1A; }
+
+/* ── 8.1 · Dark-mode button overrides ─────────────────────────────
+   The token-driven .btn-primary produces a light→dark plum gradient in
+   dark mode, which makes dark text unreadable on the right half. These
+   overrides re-pin the colours so every button stays high-contrast. */
+[data-theme="dark"] .btn-primary {
+  color: #0A0B1A;                                      /* dark text */
+  background-image: linear-gradient(140deg, #FFFFFF 0%, #E8E9EF 55%, #CDB4FE 100%);
+}
+[data-theme="dark"] .btn-primary:hover {
+  color: #0A0B1A;
+  background-image: linear-gradient(140deg, #FFFFFF 0%, #E8E9EF 30%, #A855F7 100%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--c-accent) 35%, transparent),
+    0 10px 32px -8px var(--c-accent-glow),
+    0 24px 60px -20px var(--c-accent-glow-2);
+}
+
+/* On .on-dark surfaces (footer, CTA strips), .btn-primary should always
+   be the bright-on-dark pill even when the page is in LIGHT mode. */
+.on-dark .btn-primary {
+  color: #0A0B1A;
+  background-image: linear-gradient(140deg, #FFFFFF 0%, #E8E9EF 55%, #CDB4FE 100%);
+}
+.on-dark .btn-primary:hover {
+  background-image: linear-gradient(140deg, #FFFFFF 0%, #E8E9EF 30%, #A855F7 100%);
+}
+/* Outline button on .on-dark: give it visible light outlines. */
+.on-dark .btn-outline {
+  color: #F5F5F7;
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.22);
+}
+.on-dark .btn-outline:hover {
+  color: #0A0B1A;
+  background: #F5F5F7;
+  border-color: #F5F5F7;
+}
+
+/* Utility pill used by home CTAs: `class="btn bg-white text-ink ..."`.
+   In .on-dark it already pops. Nothing to do — kept explicit here for docs. */
+
+/* ── 8.2 · Dark-mode utility swaps for interactive surfaces ───── */
+/* Neutral-50 hover backgrounds read as near-white in dark mode (too loud).
+   Rewrite them to a subtle white haze that matches the dark canvas. */
+[data-theme="dark"] .hover\:bg-neutral-50:hover,
+[data-theme="dark"] .hover\:bg-neutral-100:hover { background-color: rgba(255,255,255,0.06) !important; }
+[data-theme="dark"] .hover\:bg-neutral-50\/60:hover { background-color: rgba(255,255,255,0.04) !important; }
+
+/* Borders that read too bright in dark mode. */
+[data-theme="dark"] .border-neutral-200,
+[data-theme="dark"] .border-neutral-200\/70 { border-color: var(--c-line) !important; }
+[data-theme="dark"] .border-neutral-300 { border-color: color-mix(in oklab, var(--c-ink) 22%, var(--c-line)) !important; }
+
+/* Surfaces that used light neutrals. */
+[data-theme="dark"] .bg-neutral-50,
+[data-theme="dark"] .bg-neutral-50\/60 { background-color: var(--c-surface) !important; }
+[data-theme="dark"] .bg-white { background-color: var(--c-surface) !important; }
+[data-theme="dark"] .bg-white\/90 { background-color: rgba(255,255,255,0.10) !important; }
+[data-theme="dark"] .bg-white\/80 { background-color: rgba(255,255,255,0.08) !important; }
+
+/* Text tokens that were near-black — swap to near-white in dark mode. */
+[data-theme="dark"] .text-ink,
+[data-theme="dark"] .hover\:text-ink:hover { color: var(--c-ink) !important; }
+[data-theme="dark"] .text-neutral-500,
+[data-theme="dark"] .text-neutral-600,
+[data-theme="dark"] .text-neutral-700 { color: var(--c-muted) !important; }
+[data-theme="dark"] .text-neutral-400 { color: rgba(255,255,255,0.55) !important; }
+[data-theme="dark"] .text-neutral-900 { color: var(--c-ink) !important; }
+
+/* ── 8.3 · Nav-link readability tweak ─────────────────────────── */
+/* Slightly heavier weight + a subtle letter-spacing gives nav links more
+   presence at a glance without shouting. Applies to both themes. */
+.nav-glass nav a {
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+/* In light mode the nav shows neutral-600 → ink on hover. We make the
+   contrast step firmer. */
+.nav-glass nav a { color: #1F1F1F; }
+.nav-glass nav a:hover { color: #0A0908; }
+/* Dark mode: lift to near-white at rest, full white on hover. */
+[data-theme="dark"] .nav-glass nav a { color: #E8E9EF; }
+[data-theme="dark"] .nav-glass nav a:hover { color: #FFFFFF; }
+
+/* ── 8.4 · Responsive safety net ──────────────────────────────────
+   Global guards so a forgotten inline utility never breaks a layout
+   on tiny screens. Targets only the classic pain points. */
+
+/* Tighter container padding on phones so content stops feeling cramped. */
+@media (max-width: 380px) {
+  .container-x { padding-inline: 0.875rem; }
+}
+
+/* Forms: inline `grid-cols-2` fixed grids collapse to 1-col under 480px.
+   Scoped to <form> so card/hero grids aren't affected. */
+@media (max-width: 479px) {
+  form .grid.grid-cols-2 { grid-template-columns: minmax(0, 1fr) !important; }
+  form .grid.grid-cols-2 .col-span-2 { grid-column: auto !important; }
+}
+
+/* Product detail gallery: gap-12 is huge on mobile. Scale it. */
+@media (max-width: 767px) {
+  .grid.md\:grid-cols-2.gap-12 { gap: 1.5rem !important; }
+  .grid.md\:grid-cols-2.gap-10 { gap: 1.25rem !important; }
+}
+
+/* Long hero display text can overflow narrow screens — clamp line length. */
+@media (max-width: 479px) {
+  .display.h-1, .display.text-6xl, .display.text-7xl {
+    font-size: clamp(2.25rem, 11vw, 3rem);
+    line-height: 0.98;
+  }
+  .display.text-5xl { font-size: clamp(1.9rem, 9vw, 2.5rem); }
+}
+
+/* Home hero "stats" triplet should wrap on tiny screens instead of squashing. */
+@media (max-width: 479px) {
+  .container-x .flex.items-center.gap-8 > .w-px {
+    display: none;
+  }
+  .container-x .flex.items-center.gap-8 {
+    flex-wrap: wrap;
+    gap: 1.25rem 1.5rem;
+  }
+}
+
+/* Tables inside admin-ish dashboards stay scrollable on phones. */
+@media (max-width: 640px) {
+  .container-x table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
+/* Dark-mode mobile-drawer overlay — cover the page when scrolled into. */
+[data-theme="dark"] .nav-glass .container-x input[name="q"] {
+  background-color: rgba(255,255,255,0.05) !important;
+  border-color: var(--c-line) !important;
+  color: var(--c-ink);
+}
+[data-theme="dark"] .nav-glass .container-x input[name="q"]::placeholder {
+  color: rgba(255,255,255,0.45);
+}
+[data-theme="dark"] .nav-glass .container-x input[name="q"]:focus {
+  background-color: rgba(255,255,255,0.08) !important;
+  border-color: var(--c-ink) !important;
+}
+
+/* ── 8.5 · Product-card typography (object card titles too) ──────
+   Make every card's title + price land cleanly on the cinematic bg. */
+.group .line-clamp-2 {
+  text-shadow: none;
+}
+[data-theme="dark"] .group .line-clamp-2 { color: #FFFFFF !important; }
+[data-theme="dark"] .card .font-medium,
+[data-theme="dark"] .card .font-semibold { color: var(--c-ink); }
+
+/* Mobile: hide the tilt transform (tilt on a tiny card reads as janky) */
+@media (max-width: 640px) {
+  .tilt-inner { transform: none !important; }
+  .tilt-inner > [data-depth] { transform: none !important; }
+}
+
+/* ── 9 · Futuristic component utilities ────────────────────────── */
+@layer components {
+
+  /* Gradient-border card — one of the strongest cues that something's
+     "tech-grade". Inner surface sits flat; the 1-px border is painted by
+     a linear-gradient on a ::before layer using mask composition. */
+  .gradient-border {
+    position: relative;
+    isolation: isolate;
+    background: var(--c-surface);
+    border-radius: var(--r-md);
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,
+      color-mix(in oklab, var(--c-accent) 80%, transparent) 0%,
+      color-mix(in oklab, var(--c-accent) 0%, transparent) 40%,
+      color-mix(in oklab, var(--c-accent-2) 0%, transparent) 60%,
+      color-mix(in oklab, var(--c-accent-2) 80%, transparent) 100%);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 600ms var(--ease);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .gradient-border:hover::before { opacity: 1; }
+
+  /* Soft neon glow — applied to focus/hover states of CTAs that deserve
+     emphasis. Controlled: max 40px blur, max 35% accent opacity. */
+  .glow-accent { box-shadow: 0 0 0 1px color-mix(in oklab, var(--c-accent) 30%, transparent),
+                             0 10px 40px -10px var(--c-accent-glow); }
+
+  /* 3D tilt card target — pairs with [appTilt] directive. Establishes the
+     perspective chain on the parent; the child .tilt-inner is what rotates. */
+  .tilt-stage { perspective: 1200px; }
+  .tilt-inner {
+    transform-style: preserve-3d;
+    transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease);
+    will-change: transform;
+  }
+  .tilt-inner > [data-depth] {
+    transform: translateZ(var(--depth, 0px));
+    transition: transform var(--dur-2) var(--ease);
+  }
+
+  /* Magnetic button — pairs with [appMagnetic] directive. */
+  .magnetic {
+    transition: transform 250ms var(--ease-in), box-shadow var(--dur-2) var(--ease);
+    will-change: transform;
+  }
+
+  /* Scroll progress bar — sits at the very top. */
+  .scroll-progress {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 2px; z-index: 60;
+    background: transparent;
+    pointer-events: none;
+  }
+  .scroll-progress::after {
+    content: '';
+    position: absolute; inset: 0;
+    transform-origin: left;
+    transform: scaleX(var(--progress, 0));
+    background: linear-gradient(90deg,
+      var(--c-accent-deep) 0%, var(--c-accent) 50%, var(--c-accent-2) 100%);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--c-accent) 45%, transparent);
+  }
+
+  /* Cursor follower — two concentric elements that lerp toward the pointer.
+     Controlled entirely by transform; mix-blend-mode keeps them legible on
+     every background. Hidden on touch devices via @media (pointer). */
+  .cursor-dot, .cursor-ring {
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate3d(-50%, -50%, 0);
+    mix-blend-mode: difference;
+    will-change: transform, width, height;
+  }
+  .cursor-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #fff;
+  }
+  .cursor-ring {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid #fff;
+    transition: width 260ms var(--ease), height 260ms var(--ease),
+                border-color 200ms var(--ease), opacity 260ms var(--ease);
+  }
+  .cursor-ring.hot {
+    width: 68px; height: 68px;
+    border-color: var(--c-accent-2);
+    background: color-mix(in oklab, var(--c-accent) 10%, transparent);
+    mix-blend-mode: normal;
+  }
+  .cursor-ring.click { width: 24px; height: 24px; opacity: 0.7; }
+  @media (pointer: coarse) {
+    .cursor-dot, .cursor-ring { display: none !important; }
+  }
+
+  /* Page transition — a fade+rise wrapper you can apply to <router-outlet>'s
+     content. Angular triggers this via [@routeAnim] or class on nav change. */
+  .page-shell > * { animation: pageIn 600ms var(--ease) both; }
+
+  /* Futuristic CTA button extension — opt-in class */
+  .btn-futura {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .btn-futura::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(200px circle at var(--mx, 50%) var(--my, 50%),
+                                rgba(255,255,255,0.22), transparent 55%);
+    opacity: 0;
+    transition: opacity 500ms var(--ease);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .btn-futura:hover::after { opacity: 1; }
+  .btn-futura > * { position: relative; z-index: 1; }
+
+  /* Parallax helper — negative Z gives layered depth in a `perspective` parent */
+  .parallax-slow { transform: translateZ(-50px) scale(1.05); will-change: transform; }
+  .parallax-fast { transform: translateZ(50px); will-change: transform; }
+
+  /* Subtle grid shimmer backdrop for dark sections */
+  .grid-mesh {
+    position: relative; isolation: isolate;
+    overflow: hidden;
+  }
+  .grid-mesh::before {
+    content: '';
+    position: absolute; inset: -2px;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 80%);
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.995); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
+}
+
+/* Hide native cursor on non-touch devices that opt-in to follower */
+html.has-cursor-follower { cursor: none; }
+html.has-cursor-follower a, html.has-cursor-follower button,
+html.has-cursor-follower [role="button"], html.has-cursor-follower input,
+html.has-cursor-follower textarea, html.has-cursor-follower select,
+html.has-cursor-follower label { cursor: none; }
+@media (pointer: coarse) { html.has-cursor-follower { cursor: auto; } }
+
+/* ═════════════════════════════════════════════════════════════════
+   ARABIC / RTL
+   Swap fonts for Arabic text, and flip directional utilities that
+   Tailwind ships LTR-biased. Most layout comes from flex/grid and
+   naturally mirrors when <html dir="rtl">, so these overrides are
+   surgical — only the utilities that DO need flipping.
+   ═════════════════════════════════════════════════════════════════ */
+
+html[lang="ar"] body,
+html[dir="rtl"] body {
+  font-family: 'Tajawal', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Inter's ss feature flags don't apply to Arabic glyphs — disable to
+     avoid any shaping oddness. */
+  font-feature-settings: normal;
+}
+html[lang="ar"] .display,
+html[dir="rtl"] .display {
+  font-family: 'Tajawal', 'Instrument Serif', ui-serif, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0;
+  /* Serif italic fallback for English emphases in Arabic (e.g. brand name
+     still reads in Instrument Serif when wrapped in <em>). */
+}
+html[lang="ar"] em,
+html[dir="rtl"] em {
+  font-style: normal;     /* italic is ugly in most Arabic faces */
+  font-weight: 700;
+  color: var(--c-accent); /* keep the visual accent via weight + color */
+}
+
+/* Flip common directional utilities that ship LTR. We selectively mirror
+   the few that are visually directional; paddings/margins from Tailwind's
+   ml-/mr-/pl-/pr- become their opposites under RTL. */
+html[dir="rtl"] .ml-auto { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .mr-auto { margin-right: 0; margin-left: auto; }
+
+/* Any arrow glyph in UI (→, ←) drawn as an SVG inside a button with a
+   directional semantic should flip. Mark them with class `dir-flip`. */
+html[dir="rtl"] .dir-flip { transform: scaleX(-1); }
+
+/* Tailwind's `text-left` / `text-right` are intentionally literal —
+   leave them alone. Use `text-start`/`text-end` (Tailwind 3.3+) for
+   direction-aware alignment in new templates. */
+
+/* Scroll-progress bar: fill direction flips so it grows from the right
+   edge in RTL — otherwise it visually reads "backwards". */
+html[dir="rtl"] .scroll-progress::after { transform-origin: right; }
+
+/* Arabic numerals inside AED price labels look cleaner with tabular
+   numerics — we still render Western digits by default, which UAE users
+   expect in commerce contexts. */
+html[lang="ar"] .tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Input text alignment: make form inputs respect direction */
+html[dir="rtl"] input,
+html[dir="rtl"] textarea {
+  text-align: right;
+}
+
+/* Chip/pill arrows that point outward from text: flip them */
+html[dir="rtl"] .chevron-end svg { transform: scaleX(-1); }
+
+/* Logo SVGs always render LTR — the wordmark is Latin ("SHAHZAD"), and SVG
+   <text> elements inherit `direction` from the parent, so in RTL mode the
+   default text-anchor="start" anchors to the right edge and the text would
+   extend leftward on top of the badge. Forcing direction:ltr keeps the
+   layout intended by the SVG coordinate system. */
+app-logo svg {
+  direction: ltr;
+  /* text-anchor stays as authored ("start") but now resolves to the visual
+     left edge consistently, independent of the page direction. */
+}

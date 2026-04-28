@@ -1,0 +1,338 @@
+{% extends 'admin/index.html' %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .sh-grid { display: grid; gap: 1rem; }
+  .sh-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sh-two-col { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 1024px) {
+    .sh-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sh-two-col { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .sh-cards { grid-template-columns: 1fr; }
+  }
+  .sh-card {
+    position: relative;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 14px rgba(0,0,0,0.04);
+    overflow: hidden;
+    transition: box-shadow .25s ease, transform .25s ease;
+  }
+  .sh-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  :root.dark .sh-card, [data-theme="dark"] .sh-card {
+    background: rgb(24 24 27);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .sh-kpi-accent { position: absolute; inset: 0 auto 0 0; width: 4px; }
+  .sh-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #6b7280; font-weight: 500; }
+  .sh-value { font-size: 2rem; font-weight: 700; line-height: 1.1; margin-top: 0.4rem; color: #0a0a0a; }
+  :root.dark .sh-value, [data-theme="dark"] .sh-value { color: #fff; }
+  .sh-hint { font-size: 12px; color: #6b7280; margin-top: 0.25rem; }
+  .sh-trend { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .sh-trend-up { background: #ecfdf5; color: #047857; }
+  .sh-trend-down { background: #fef2f2; color: #b91c1c; }
+  .sh-icon { font-size: 1.35rem; opacity: 0.85; }
+
+  .sh-section-h { font-size: 15px; font-weight: 600; color: #0a0a0a; }
+  :root.dark .sh-section-h, [data-theme="dark"] .sh-section-h { color: #fff; }
+  .sh-section-sub { font-size: 12px; color: #6b7280; }
+
+  .sh-sparkline { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
+  .sh-sparkline .bar {
+    flex: 1;
+    background: linear-gradient(180deg, #A855F7 0%, #740DC2 100%);
+    border-radius: 6px 6px 2px 2px;
+    min-height: 2px;
+    position: relative;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .sh-sparkline .bar:hover { opacity: 0.85; transform: scaleY(1.02); }
+  .sh-sparkline .bar.zero { background: #e5e7eb; }
+  :root.dark .sh-sparkline .bar.zero, [data-theme="dark"] .sh-sparkline .bar.zero { background: rgba(255,255,255,0.08); }
+  .sh-spark-labels { display: flex; gap: 6px; margin-top: 0.4rem; }
+  .sh-spark-labels span { flex: 1; text-align: center; font-size: 10px; color: #9ca3af; }
+
+  .sh-top-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.6rem 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .sh-top-row:last-child { border: none; }
+  :root.dark .sh-top-row, [data-theme="dark"] .sh-top-row { border-bottom-color: rgba(255,255,255,0.06); }
+  .sh-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; background: #f3f4f6; }
+  .sh-rank { width: 22px; height: 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; background: #f3f4f6; color: #374151; }
+  .sh-rank-1 { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; }
+  .sh-rank-2 { background: linear-gradient(135deg, #9ca3af, #d1d5db); color: #fff; }
+  .sh-rank-3 { background: linear-gradient(135deg, #b45309, #d97706); color: #fff; }
+
+  .sh-activity { position: relative; padding-left: 1.3rem; }
+  .sh-activity::before { content: ''; position: absolute; left: 10px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, rgba(116,13,194,0.25), rgba(116,13,194,0)); border-radius: 2px; }
+  .sh-act-row { display: flex; gap: 0.75rem; padding: 0.55rem 0; position: relative; }
+  .sh-act-row::before { content: ''; position: absolute; left: -16px; top: 16px; width: 10px; height: 10px; background: #fff; border: 2px solid #740DC2; border-radius: 999px; }
+  :root.dark .sh-act-row::before, [data-theme="dark"] .sh-act-row::before { background: rgb(24 24 27); }
+  .sh-act-icon { font-size: 16px; margin-top: 2px; }
+  .sh-act-title { font-size: 13px; font-weight: 500; color: #0a0a0a; }
+  :root.dark .sh-act-title, [data-theme="dark"] .sh-act-title { color: #f5f5f5; }
+  .sh-act-sub { font-size: 11px; color: #6b7280; }
+  .sh-act-time { font-size: 11px; color: #9ca3af; margin-left: auto; white-space: nowrap; }
+
+  .sh-quick-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .sh-quick {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #0a0a0a, #1f1f1f);
+    color: #fff; font-size: 13px; font-weight: 500;
+    text-decoration: none; transition: transform .2s ease, box-shadow .25s ease, background .3s ease;
+  }
+  .sh-quick:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(116, 13, 194, 0.3); background: linear-gradient(135deg, #1f1f1f, #3a1065, #5B0A99); color: #fff; }
+
+  .sh-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: #f3f4f6; color: #374151; text-transform: capitalize; }
+  .sh-pill.pending { background: #fef3c7; color: #92400e; }
+  .sh-pill.paid { background: #dcfce7; color: #166534; }
+  .sh-pill.shipped { background: #dbeafe; color: #1e40af; }
+  .sh-pill.delivered { background: #e0e7ff; color: #3730a3; }
+  .sh-pill.cancelled, .sh-pill.failed { background: #fee2e2; color: #991b1b; }
+
+  .sh-low-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .sh-low-row:last-child { border: none; }
+  :root.dark .sh-low-row, [data-theme="dark"] .sh-low-row { border-bottom-color: rgba(255,255,255,0.06); }
+  .sh-low-stock { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #fef2f2; color: #b91c1c; }
+  .sh-low-stock.zero { background: #7f1d1d; color: #fff; }
+
+  .sh-hero {
+    margin: -1rem -1rem 1.25rem; padding: 1.5rem 1.5rem 1.2rem;
+    border-radius: 0 0 18px 18px;
+    color: #fff;
+    background:
+      radial-gradient(600px 200px at 20% 120%, rgba(255, 255, 255, 0.12), transparent 60%),
+      linear-gradient(135deg, #2B044A 0%, #5B0A99 45%, #8B2BDB 100%);
+    position: relative; overflow: hidden;
+  }
+  .sh-hero::after {
+    content: ''; position: absolute; right: -40px; top: -40px;
+    width: 240px; height: 240px; border-radius: 999px;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.15), transparent 70%);
+  }
+  .sh-hero h1 { font-size: 1.5rem; font-weight: 700; margin: 0; color: #fff; }
+  .sh-hero p { font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 0.3rem; }
+  .sh-week-chips { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .sh-week-chip {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.14);
+    padding: 0.4rem 0.75rem; border-radius: 10px; font-size: 12px;
+    backdrop-filter: blur(4px);
+  }
+  .sh-week-chip strong { display: block; font-size: 16px; margin-top: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="sh-hero">
+  <h1>Welcome back 👋</h1>
+  <p>Here's what's happening at Shahzad — Rolla, Sharjah · {% now "l, F j" %}</p>
+  <div class="sh-week-chips">
+    {% for k in week_kpis %}
+    <div class="sh-week-chip">
+      {{ k.label }}
+      <strong>
+        {{ k.value }}
+        {% if k.trend is not None %}
+          {% if k.trend >= 0 %}<span style="color:#bbf7d0;font-size:11px;">▲ {{ k.trend }}%</span>
+          {% else %}<span style="color:#fecaca;font-size:11px;">▼ {{ k.trend|cut:"-" }}%</span>{% endif %}
+        {% endif %}
+      </strong>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="sh-grid sh-cards" style="margin-bottom: 1rem;">
+  {% for k in kpis %}
+  <div class="sh-card">
+    <div class="sh-kpi-accent" style="background: {{ k.accent }};"></div>
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div class="sh-label">{{ k.label }}</div>
+      <div class="sh-icon">{{ k.icon }}</div>
+    </div>
+    <div class="sh-value">{{ k.value }}</div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top: 0.35rem;">
+      <div class="sh-hint">{{ k.hint }}</div>
+      {% if k.trend is not None %}
+        {% if k.trend >= 0 %}<span class="sh-trend sh-trend-up">▲ {{ k.trend }}%</span>
+        {% else %}<span class="sh-trend sh-trend-down">▼ {{ k.trend|cut:"-" }}%</span>{% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="sh-card" style="margin-bottom: 1rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+    <div>
+      <div class="sh-section-h">Quick actions</div>
+      <div class="sh-section-sub">Shortcuts to common add-forms.</div>
+    </div>
+    <div class="sh-quick-row">
+      {% for q in quick_adds %}
+      <a href="{{ q.link }}" class="sh-quick">
+        <span>{{ q.icon }}</span>{{ q.label }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="sh-grid sh-two-col" style="margin-bottom: 1rem;">
+  <div class="sh-card">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+      <div>
+        <div class="sh-section-h">Revenue, last 14 days</div>
+        <div class="sh-section-sub">Paid orders only · Hover to inspect</div>
+      </div>
+      <a href="/admin/orders/order/" style="font-size:12px; color:#740DC2; text-decoration:none;">All orders →</a>
+    </div>
+    <div class="sh-sparkline" style="margin-top: 1rem;">
+      {% for p in sparkline %}
+      <div class="bar {% if p.value == 0 %}zero{% endif %}"
+           style="height: {{ p.height_pct|default:2 }}%;"
+           title="{{ p.date|date:'M j' }} · {{ p.value|floatformat:0 }} AED"></div>
+      {% endfor %}
+    </div>
+    <div class="sh-spark-labels">
+      {% for p in sparkline %}
+      <span>{{ p.date|date:"j" }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="sh-card">
+    <div class="sh-section-h">Order status</div>
+    <div class="sh-section-sub">Lifetime distribution</div>
+    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.55rem;">
+      {% for s in order_status_breakdown %}
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+          <span class="sh-pill {{ s.status }}">{{ s.status }}</span>
+          <span style="color:#6b7280;">{{ s.n }}</span>
+        </div>
+        <div style="height:6px; background: rgba(0,0,0,0.05); border-radius: 999px; overflow:hidden;">
+          <div style="height:100%; background: linear-gradient(90deg, #740DC2, #A855F7); border-radius:999px; width: {% widthratio s.n orders_total 100 %}%;"></div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="sh-section-sub">No orders yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="sh-grid sh-two-col" style="margin-bottom: 1rem;">
+  <div class="sh-card">
+    <div class="sh-section-h">🏆 Top sellers</div>
+    <div class="sh-section-sub">Ranked by units sold on paid / shipped / delivered orders</div>
+    <div style="margin-top: 0.75rem;">
+      {% for t in top_sellers %}
+      <a href="/admin/catalog/product/{{ t.id }}/change/" style="text-decoration:none; color:inherit;">
+        <div class="sh-top-row">
+          <span class="sh-rank {% if forloop.counter == 1 %}sh-rank-1{% elif forloop.counter == 2 %}sh-rank-2{% elif forloop.counter == 3 %}sh-rank-3{% endif %}">{{ forloop.counter }}</span>
+          {% if t.image %}<img src="{{ t.image }}" class="sh-thumb" alt="" />{% else %}<div class="sh-thumb"></div>{% endif %}
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ t.title }}</div>
+            <div class="sh-section-sub">{{ t.brand }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:13px; font-weight:600;">{{ t.units }} sold</div>
+            <div class="sh-section-sub">{{ t.revenue|floatformat:0 }} AED</div>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="sh-section-sub" style="padding: 1rem 0;">No sales yet. Products you sell will show here.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="sh-card">
+    <div class="sh-section-h">⚡ Recent activity</div>
+    <div class="sh-section-sub">Latest orders, repairs, and customers</div>
+    <div class="sh-activity" style="margin-top: 0.75rem;">
+      {% for a in activity %}
+      <a href="{{ a.link }}" style="text-decoration:none; color:inherit;">
+        <div class="sh-act-row">
+          <div class="sh-act-icon">{{ a.icon }}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="sh-act-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.title }}</div>
+            <div class="sh-act-sub">{{ a.sub }}</div>
+          </div>
+          <div class="sh-act-time">{{ a.at|timesince }} ago</div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="sh-section-sub" style="padding: 1rem 0;">Nothing here yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="sh-grid sh-two-col" style="margin-bottom: 1.25rem;">
+  <div class="sh-card">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+      <div>
+        <div class="sh-section-h">📋 Recent orders</div>
+        <div class="sh-section-sub">Newest first</div>
+      </div>
+      <a href="/admin/orders/order/" style="font-size:12px; color:#740DC2; text-decoration:none;">View all →</a>
+    </div>
+    <table style="width:100%; margin-top:0.75rem; border-collapse:collapse;">
+      <tbody>
+      {% for o in recent_orders %}
+      <tr>
+        <td style="padding:0.5rem 0; border-bottom:1px solid rgba(0,0,0,0.05);">
+          <a href="/admin/orders/order/{{ o.id }}/change/" style="font-family:ui-monospace,SFMono-Regular,monospace; font-size:12px; color:#740DC2; text-decoration:none;">{{ o.short_ref }}</a>
+        </td>
+        <td style="padding:0.5rem 0; font-size:13px; border-bottom:1px solid rgba(0,0,0,0.05);">{{ o.name }}</td>
+        <td style="padding:0.5rem 0; font-size:13px; font-weight:600; border-bottom:1px solid rgba(0,0,0,0.05);">{{ o.total }} {{ o.currency }}</td>
+        <td style="padding:0.5rem 0; border-bottom:1px solid rgba(0,0,0,0.05);"><span class="sh-pill {{ o.status }}">{{ o.status }}</span></td>
+        <td style="padding:0.5rem 0; font-size:11px; color:#9ca3af; text-align:right; border-bottom:1px solid rgba(0,0,0,0.05);">{{ o.created_at|date:"M j" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="padding:1rem 0; color:#9ca3af; text-align:center; font-size:13px;">No orders yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sh-card">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+      <div>
+        <div class="sh-section-h">⚠️ Low stock</div>
+        <div class="sh-section-sub">Fewer than 5 units</div>
+      </div>
+      <a href="/admin/catalog/product/?stock__lt=5" style="font-size:12px; color:#740DC2; text-decoration:none;">All low →</a>
+    </div>
+    <div style="margin-top:0.75rem;">
+      {% for p in low_stock_rows %}
+      <a href="/admin/catalog/product/{{ p.id }}/change/" style="text-decoration:none; color:inherit;">
+        <div class="sh-low-row">
+          {% if p.primary_image %}<img src="{{ p.primary_image }}" class="sh-thumb" style="width:36px; height:36px;" alt="" />{% else %}<div class="sh-thumb" style="width:36px; height:36px;"></div>{% endif %}
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.title }}</div>
+            <div class="sh-section-sub">{% if p.brand %}{{ p.brand.name }}{% endif %} · {% if p.category %}{{ p.category.name }}{% endif %}</div>
+          </div>
+          <span class="sh-low-stock {% if p.stock == 0 %}zero{% endif %}">
+            {% if p.stock == 0 %}Out of stock{% else %}{{ p.stock }} left{% endif %}
+          </span>
+        </div>
+      </a>
+      {% empty %}
+      <div class="sh-section-sub" style="padding: 1rem 0;">Everything well stocked. 🎉</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{{ block.super }}
+{% endblock %}
