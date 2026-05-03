@@ -18,8 +18,10 @@ class CartAdmin(ModelAdmin):
 
     def count_display(self, obj):
         return obj.count
+
     count_display.short_description = "Items"
 
     def subtotal_display(self, obj):
         return obj.subtotal
+
     subtotal_display.short_description = "Subtotal"

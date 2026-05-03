@@ -13,6 +13,7 @@ Safety:
   - Unique-together (user, product) at the DB layer + get_or_create for race safety.
   - 404 for a missing product; the API never leaks existence of other users' rows.
 """
+
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
@@ -27,34 +28,35 @@ from .serializers import WishedProductSerializer
 
 def _product_qs():
     """Prefetch helper — avoid N+1 on list serialization."""
-    return (
-        Product.objects
-        .select_related("brand", "category")
-        .prefetch_related("uploaded_images")
-    )
+    return Product.objects.select_related("brand", "category").prefetch_related("uploaded_images")
 
 
 class WishlistView(APIView):
     """List (GET) and add (POST) for the current user."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         items = (
-            WishedProduct.objects
-            .filter(user=request.user)
+            WishedProduct.objects.filter(user=request.user)
             .select_related("product", "product__brand", "product__category")
             .prefetch_related("product__uploaded_images")
         )
-        return Response(WishedProductSerializer(items, many=True, context={"request": request}).data)
+        return Response(
+            WishedProductSerializer(items, many=True, context={"request": request}).data
+        )
 
     def post(self, request):
         pid = request.data.get("product_id") or request.data.get("product")
         if not pid:
-            return Response({"detail": "product_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "product_id is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
         product = get_object_or_404(_product_qs(), pk=pid, is_active=True)
         try:
             entry, created = WishedProduct.objects.get_or_create(
-                user=request.user, product=product,
+                user=request.user,
+                product=product,
             )
         except IntegrityError:
             # Extremely unlikely given get_or_create, but belt-and-braces
@@ -67,11 +69,13 @@ class WishlistView(APIView):
 
 class WishlistItemView(APIView):
     """Remove a product from the current user's wishlist."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request, product_id):
         deleted, _ = WishedProduct.objects.filter(
-            user=request.user, product_id=product_id,
+            user=request.user,
+            product_id=product_id,
         ).delete()
         if not deleted:
             return Response({"detail": "Not in wishlist."}, status=status.HTTP_404_NOT_FOUND)
@@ -80,6 +84,7 @@ class WishlistItemView(APIView):
 
 class WishlistToggleView(APIView):
     """Idempotent single-call toggle — most frontends use this."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, product_id):
@@ -98,10 +103,12 @@ class WishlistToggleView(APIView):
 
 class WishlistCheckView(APIView):
     """Probe endpoint — useful for pages that don't want the full list."""
+
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, product_id):
         in_wishlist = WishedProduct.objects.filter(
-            user=request.user, product_id=product_id,
+            user=request.user,
+            product_id=product_id,
         ).exists()
         return Response({"in_wishlist": in_wishlist, "product_id": int(product_id)})

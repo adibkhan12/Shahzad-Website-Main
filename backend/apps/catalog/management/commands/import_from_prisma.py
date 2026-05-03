@@ -9,6 +9,7 @@ Usage:
 
 Safe to re-run: uses update_or_create keyed on title/name/id.
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -23,29 +24,46 @@ except ImportError:  # pragma: no cover
     psycopg = None
 
 
-TABLES_ORDER = ["users", "categories", "products", "adbanners", "settings", "reviews", "qas", "wished"]
+TABLES_ORDER = [
+    "users",
+    "categories",
+    "products",
+    "adbanners",
+    "settings",
+    "reviews",
+    "qas",
+    "wished",
+]
 
 
 class Command(BaseCommand):
     help = "Import rows from the legacy Prisma-managed Postgres database."
 
     def add_arguments(self, parser):
-        parser.add_argument("--truncate", action="store_true", help="Wipe target Django tables first")
-        parser.add_argument("--only", default="", help="Comma-separated subset of: " + ",".join(TABLES_ORDER))
+        parser.add_argument(
+            "--truncate", action="store_true", help="Wipe target Django tables first"
+        )
+        parser.add_argument(
+            "--only", default="", help="Comma-separated subset of: " + ",".join(TABLES_ORDER)
+        )
         parser.add_argument("--dry-run", action="store_true")
 
     def handle(self, *args, **opts):
         if not psycopg:
-            raise CommandError("psycopg is not installed (it is in requirements.txt — run pip install).")
+            raise CommandError(
+                "psycopg is not installed (it is in requirements.txt — run pip install)."
+            )
 
         url = getattr(settings, "LEGACY_DATABASE_URL", "")
         if not url:
-            raise CommandError("LEGACY_DATABASE_URL is empty. Set it in .env to the old Postgres URL and re-run.")
+            raise CommandError(
+                "LEGACY_DATABASE_URL is empty. Set it in .env to the old Postgres URL and re-run."
+            )
 
         only = {x.strip() for x in opts["only"].split(",") if x.strip()} or set(TABLES_ORDER)
         dry = opts["dry_run"]
 
-        self.stdout.write(f"Connecting to legacy DB…")
+        self.stdout.write("Connecting to legacy DB…")
         with psycopg.connect(url, autocommit=False) as conn, conn.cursor() as cur:
             self._introspect(cur)
 
@@ -88,8 +106,9 @@ class Command(BaseCommand):
 
     def _truncate(self):
         from apps.accounts.models import User
-        from apps.catalog.models import AdBanner, Category, Product, QA, Review, Setting
+        from apps.catalog.models import QA, AdBanner, Category, Product, Review, Setting
         from apps.wishlist.models import WishedProduct
+
         WishedProduct.objects.all().delete()
         QA.objects.all().delete()
         Review.objects.all().delete()
@@ -111,6 +130,7 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] users: {len(rows)}")
             return
         from apps.accounts.models import User
+
         for r in rows:
             email = r.get("email")
             if not email:
@@ -139,6 +159,7 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] categories: {len(rows)}")
             return
         from apps.catalog.models import Category
+
         id_map = {}
         for r in rows:
             cat, _ = Category.objects.update_or_create(
@@ -166,6 +187,7 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] products: {len(rows)}")
             return
         from apps.catalog.models import Category, Product
+
         cat_map = getattr(self, "_cat_map", {c.id: c for c in Category.objects.all()})
         for r in rows:
             cat = cat_map.get(r.get("categoryId") or r.get("category_id"))
@@ -198,6 +220,7 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] adbanners: {len(rows)}")
             return
         from apps.catalog.models import AdBanner
+
         for r in rows:
             AdBanner.objects.update_or_create(
                 title=r["title"],
@@ -222,8 +245,11 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] settings: {len(rows)}")
             return
         from apps.catalog.models import Setting
+
         for r in rows:
-            Setting.objects.update_or_create(name=r["name"], defaults={"value": r.get("value") or {}})
+            Setting.objects.update_or_create(
+                name=r["name"], defaults={"value": r.get("value") or {}}
+            )
         self.stdout.write(f"settings: {len(rows)}")
 
     @transaction.atomic
@@ -236,6 +262,7 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] reviews: {len(rows)}")
             return
         from apps.catalog.models import Product, Review
+
         products = {p.id: p for p in Product.objects.all()}
         created = 0
         for r in rows:
@@ -262,6 +289,7 @@ class Command(BaseCommand):
             self.stdout.write(f"[dry] qas: {len(rows)}")
             return
         from apps.catalog.models import QA, Product
+
         products = {p.id: p for p in Product.objects.all()}
         created = 0
         for r in rows:
@@ -290,6 +318,7 @@ class Command(BaseCommand):
         from apps.accounts.models import User
         from apps.catalog.models import Product
         from apps.wishlist.models import WishedProduct
+
         users_by_email = {u.email: u for u in User.objects.all()}
         products = {p.id: p for p in Product.objects.all()}
         created = 0

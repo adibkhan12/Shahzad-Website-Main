@@ -13,8 +13,15 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "email", "username", "first_name", "last_name",
-            "full_name", "date_joined", "referral_source", "referral_other",
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "full_name",
+            "date_joined",
+            "referral_source",
+            "referral_other",
         ]
         read_only_fields = ["id", "email", "username", "date_joined"]
 
@@ -69,7 +76,16 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = [
-            "id", "name", "email", "phone", "address_line1", "address_line2",
-            "city", "postal_code", "country", "is_default", "created_at",
+            "id",
+            "name",
+            "email",
+            "phone",
+            "address_line1",
+            "address_line2",
+            "city",
+            "postal_code",
+            "country",
+            "is_default",
+            "created_at",
         ]
         read_only_fields = ["id", "created_at"]

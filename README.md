@@ -59,6 +59,17 @@ npm start                           # http://localhost:4200
 - API: <http://localhost:8000/api/v1/>
 - Admin: <http://localhost:8000/admin/>
 
+## Code quality
+
+```bash
+# in backend/, with venv activated
+pip install -r requirements-dev.txt
+pre-commit install                  # one-time — installs the git hook
+```
+
+After `pre-commit install`, every `git commit` auto-runs ruff (lint + format) on staged files.
+Manual checks: `ruff check backend/` and `ruff format backend/`.
+
 ## Production
 
 See [backend/DEPLOY.md](backend/DEPLOY.md) for the full Docker Compose deploy walkthrough (HTTPS via Let's Encrypt, backups, runbook checklist).

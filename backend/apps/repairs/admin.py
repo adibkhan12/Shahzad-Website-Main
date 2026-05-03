@@ -7,7 +7,15 @@ from .models import RepairBooking, RepairService
 
 @admin.register(RepairService)
 class RepairServiceAdmin(ModelAdmin):
-    list_display = ("icon_display", "name", "device", "base_price", "est_minutes", "is_featured", "order")
+    list_display = (
+        "icon_display",
+        "name",
+        "device",
+        "base_price",
+        "est_minutes",
+        "is_featured",
+        "order",
+    )
     list_filter = ("device", "is_featured")
     list_editable = ("base_price", "est_minutes", "is_featured", "order")
     search_fields = ("name", "description")
@@ -16,6 +24,7 @@ class RepairServiceAdmin(ModelAdmin):
 
     def icon_display(self, obj):
         return format_html('<span style="font-size:22px">{}</span>', obj.icon or "🔧")
+
     icon_display.short_description = ""
 
 
@@ -31,7 +40,16 @@ STATUS_COLORS = {
 
 @admin.register(RepairBooking)
 class RepairBookingAdmin(ModelAdmin):
-    list_display = ("short_ref", "name", "device_brand", "device_model", "service", "status_badge", "quoted_price", "created_at")
+    list_display = (
+        "short_ref",
+        "name",
+        "device_brand",
+        "device_model",
+        "service",
+        "status_badge",
+        "quoted_price",
+        "created_at",
+    )
     list_filter = ("status", "service")
     list_editable = ("quoted_price",)
     search_fields = ("reference", "name", "email", "phone", "device_model")
@@ -42,8 +60,11 @@ class RepairBookingAdmin(ModelAdmin):
         bg, fg = STATUS_COLORS.get(obj.status, "#f3f4f6,#374151").split(",")
         return format_html(
             '<span style="background:{};color:{};padding:2px 8px;border-radius:999px;font-size:11px;text-transform:uppercase">{}</span>',
-            bg, fg, obj.get_status_display(),
+            bg,
+            fg,
+            obj.get_status_display(),
         )
+
     status_badge.short_description = "Status"
 
     @admin.action(description="Mark as quoted")

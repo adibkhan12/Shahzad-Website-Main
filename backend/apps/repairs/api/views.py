@@ -17,9 +17,7 @@ class RepairServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def devices(self, request):
-        return Response([
-            {"value": v, "label": l} for v, l in RepairService.Device.choices
-        ])
+        return Response([{"value": v, "label": lab} for v, lab in RepairService.Device.choices])
 
 
 class RepairBookingViewSet(viewsets.GenericViewSet):

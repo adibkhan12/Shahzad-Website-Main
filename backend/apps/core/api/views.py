@@ -2,7 +2,7 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.catalog.api.serializers import AdBannerSerializer, SettingSerializer
+from apps.catalog.api.serializers import AdBannerSerializer
 from apps.catalog.models import AdBanner, Setting
 
 
@@ -13,10 +13,12 @@ class SiteConfigView(APIView):
         settings_qs = Setting.objects.all()
         settings_data = {s.name: s.value for s in settings_qs}
         banners = AdBanner.objects.all()[:6]
-        return Response({
-            "settings": settings_data,
-            "banners": AdBannerSerializer(banners, many=True).data,
-        })
+        return Response(
+            {
+                "settings": settings_data,
+                "banners": AdBannerSerializer(banners, many=True).data,
+            }
+        )
 
 
 _STATIC_PAGES = {

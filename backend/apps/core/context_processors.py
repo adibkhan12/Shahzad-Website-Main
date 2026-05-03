@@ -3,7 +3,6 @@ from django.conf import settings
 from apps.cart.services import get_or_create_cart
 from apps.wishlist.models import WishedProduct
 
-
 BRAND = {
     "name": "Shahzad Arshad",
     "legal_name": "Shahzad Arshad Elect. Devices tr",

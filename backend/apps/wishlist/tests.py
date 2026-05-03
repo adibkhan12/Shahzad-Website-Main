@@ -9,8 +9,8 @@ Coverage:
   - Check probe returns booleans
   - 404 for missing/inactive products
 """
+
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -23,12 +23,20 @@ User = get_user_model()
 class WishlistAPITests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.alice = User.objects.create_user(username="alice", email="alice@test.com", password="pw")
+        cls.alice = User.objects.create_user(
+            username="alice", email="alice@test.com", password="pw"
+        )
         cls.bob = User.objects.create_user(username="bob", email="bob@test.com", password="pw")
         cls.cat = Category.objects.create(name="Phones", slug="phones")
-        cls.p1 = Product.objects.create(title="iPhone 15", slug="iphone-15", price=3000, category=cls.cat, is_active=True)
-        cls.p2 = Product.objects.create(title="Pixel 9", slug="pixel-9", price=2500, category=cls.cat, is_active=True)
-        cls.inactive = Product.objects.create(title="Old Phone", slug="old-phone", price=100, category=cls.cat, is_active=False)
+        cls.p1 = Product.objects.create(
+            title="iPhone 15", slug="iphone-15", price=3000, category=cls.cat, is_active=True
+        )
+        cls.p2 = Product.objects.create(
+            title="Pixel 9", slug="pixel-9", price=2500, category=cls.cat, is_active=True
+        )
+        cls.inactive = Product.objects.create(
+            title="Old Phone", slug="old-phone", price=100, category=cls.cat, is_active=False
+        )
 
     # ── auth ──────────────────────────────────────────────────────
     def test_anon_cannot_list(self):

@@ -82,7 +82,9 @@ class GoogleAuthView(APIView):
                 ser.validated_data["id_token"], g_requests.Request(), client_id
             )
         except ValueError:
-            return Response({"detail": "Invalid Google ID token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"detail": "Invalid Google ID token."}, status=status.HTTP_401_UNAUTHORIZED
+            )
 
         email = (info.get("email") or "").lower()
         if not email:
@@ -140,12 +142,16 @@ class AddressViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         address = serializer.save(user=self.request.user)
         if address.is_default:
-            Address.objects.filter(user=self.request.user).exclude(pk=address.pk).update(is_default=False)
+            Address.objects.filter(user=self.request.user).exclude(pk=address.pk).update(
+                is_default=False
+            )
 
     def perform_update(self, serializer):
         address = serializer.save()
         if address.is_default:
-            Address.objects.filter(user=self.request.user).exclude(pk=address.pk).update(is_default=False)
+            Address.objects.filter(user=self.request.user).exclude(pk=address.pk).update(
+                is_default=False
+            )
 
     @action(detail=True, methods=["post"])
     def make_default(self, request, pk=None):

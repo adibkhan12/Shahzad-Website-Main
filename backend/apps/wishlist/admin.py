@@ -17,10 +17,7 @@ class WishedProductAdmin(ModelAdmin):
     list_per_page = 50
 
     def get_queryset(self, request):
-        return (
-            super().get_queryset(request)
-            .select_related("user", "product", "product__brand")
-        )
+        return super().get_queryset(request).select_related("user", "product", "product__brand")
 
     def thumb(self, obj):
         url = obj.product.primary_image if obj.product else None
@@ -31,7 +28,8 @@ class WishedProductAdmin(ModelAdmin):
             )
         return format_html(
             '<div style="height:40px;width:40px;border-radius:6px;'
-            'background:linear-gradient(135deg,#f3f4f6,#e5e7eb);display:flex;'
+            "background:linear-gradient(135deg,#f3f4f6,#e5e7eb);display:flex;"
             'align-items:center;justify-content:center;color:#9ca3af;font-size:14px">♡</div>'
         )
+
     thumb.short_description = ""
