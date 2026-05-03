@@ -155,12 +155,55 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env("EMAIL_USE_TLS")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
 
+from decimal import Decimal as _D  # noqa: E402
+
 # Payments
 CURRENCY = env("CURRENCY", default="AED")
+
+# Tamara — same API base for sandbox or prod (you switch via TAMARA_BASE_URL),
+# but the API KEY is environment-specific. Per-region UAE/KSA keys are
+# checked first; if absent, falls back to the legacy TAMARA_API_KEY.
 TAMARA_BASE_URL = env("TAMARA_BASE_URL", default="")
 TAMARA_API_KEY = env("TAMARA_API_KEY", default="")
+TAMARA_API_KEY_UAE = env("TAMARA_API_KEY_UAE", default="")
+TAMARA_API_KEY_KSA = env("TAMARA_API_KEY_KSA", default="")
+# Issued separately by Tamara at webhook registration (the "Notification Token").
+# Used to verify the HS256-signed JWT they send on webhook auth.
+TAMARA_NOTIFICATION_TOKEN = env("TAMARA_NOTIFICATION_TOKEN", default="")
+
+# Tabby — DIFFERENT API base for KSA (api.tabby.sa) vs UAE (api.tabby.ai),
+# and different keys per region. Falls back to the legacy TABBY_* if a
+# region-specific value is missing.
 TABBY_API_URL = env("TABBY_API_URL", default="")
 TABBY_SECRET_KEY = env("TABBY_SECRET_KEY", default="")
+TABBY_API_URL_UAE = env("TABBY_API_URL_UAE", default="https://api.tabby.ai")
+TABBY_SECRET_KEY_UAE = env("TABBY_SECRET_KEY_UAE", default="")
+TABBY_API_URL_KSA = env("TABBY_API_URL_KSA", default="https://api.tabby.sa")
+TABBY_SECRET_KEY_KSA = env("TABBY_SECRET_KEY_KSA", default="")
+# Shared secret you set when registering the Tabby webhook; sent back as the
+# value of the X-Webhook-Auth header on every webhook delivery.
+TABBY_WEBHOOK_SECRET = env("TABBY_WEBHOOK_SECRET", default="")
+
+# Region-specific shipping. Currency stays AED for both for now.
+SHIPPING = {
+    "UAE": {
+        "fee": _D("30"),
+        "days": "1-3",
+        "label": "Same-day in Sharjah, next-day UAE-wide",
+    },
+    "KSA": {
+        "fee": _D("150"),
+        "days": "15-20",
+        "label": "International shipping to Mecca, Madina, or Jeddah",
+    },
+}
+
+# KSA delivery is currently limited to these three cities only.
+KSA_ALLOWED_CITIES = ["Mecca", "Madina", "Jeddah"]
+
+# BNPL service fee added to subtotal when paying via Tamara or Tabby.
+# Calculated on subtotal (products) only — shipping is excluded.
+BNPL_SURCHARGE_PCT = _D("9")
 
 # Google OAuth (ID-token based; Angular sends ID token, backend verifies & issues JWT)
 GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
@@ -223,6 +266,26 @@ CORS_ALLOW_HEADERS = [
     "x-guest-session",
 ]
 
+# Surface ERROR-level logs from our `apps.*` modules to the runserver console.
+# Without this, calls like logger.error() inside payment providers would be
+# silently swallowed by Django's default logging config.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "[%(levelname)s] %(name)s — %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "apps": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 UNFOLD = {
@@ -256,6 +319,16 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {"title": "Products", "icon": "inventory_2", "link": "/admin/catalog/product/"},
+                    {
+                        "title": "+ Add product",
+                        "icon": "add",
+                        "link": "/admin/catalog/product/add/",
+                    },
+                    {
+                        "title": "Stock movements",
+                        "icon": "swap_horiz",
+                        "link": "/admin/catalog/stockmovement/",
+                    },
                     {"title": "Categories", "icon": "category", "link": "/admin/catalog/category/"},
                     {"title": "Brands", "icon": "verified", "link": "/admin/catalog/brand/"},
                     {"title": "Reviews", "icon": "star", "link": "/admin/catalog/review/"},
@@ -275,8 +348,21 @@ UNFOLD = {
                 "title": "Services",
                 "separator": True,
                 "items": [
-                    {"title": "Repair services", "icon": "build", "link": "/admin/repairs/repairservice/"},
-                    {"title": "Repair bookings", "icon": "assignment", "link": "/admin/repairs/repairbooking/"},
+                    {
+                        "title": "Repair services",
+                        "icon": "build",
+                        "link": "/admin/repairs/repairservice/",
+                    },
+                    {
+                        "title": "Repair bookings",
+                        "icon": "assignment",
+                        "link": "/admin/repairs/repairbooking/",
+                    },
+                    {
+                        "title": "+ New booking",
+                        "icon": "add",
+                        "link": "/admin/repairs/repairbooking/add/",
+                    },
                 ],
             },
             {
@@ -284,8 +370,32 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {"title": "Customers", "icon": "group", "link": "/admin/accounts/user/"},
-                    {"title": "Addresses", "icon": "location_on", "link": "/admin/accounts/address/"},
-                    {"title": "Wishlists", "icon": "favorite", "link": "/admin/wishlist/wishedproduct/"},
+                    {
+                        "title": "Addresses",
+                        "icon": "location_on",
+                        "link": "/admin/accounts/address/",
+                    },
+                    {
+                        "title": "Wishlists",
+                        "icon": "favorite",
+                        "link": "/admin/wishlist/wishedproduct/",
+                    },
+                ],
+            },
+            {
+                "title": "Site config",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Homepage hero",
+                        "icon": "home",
+                        "link": "/admin/catalog/homepage/",
+                    },
+                    {
+                        "title": "Site settings",
+                        "icon": "settings",
+                        "link": "/admin/catalog/setting/",
+                    },
                 ],
             },
         ],

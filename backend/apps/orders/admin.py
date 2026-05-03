@@ -28,19 +28,58 @@ STATUS_COLORS = {
 
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
-    list_display = ("short_ref", "name", "email", "total_display", "payment_method", "status_badge", "paid", "created_at")
-    list_filter = ("status", "payment_method", "paid", "created_at")
+    list_display = (
+        "short_ref",
+        "name",
+        "email",
+        "region",
+        "total_display",
+        "payment_method",
+        "status_badge",
+        "paid",
+        "created_at",
+    )
+    list_filter = ("status", "payment_method", "paid", "region", "created_at")
     search_fields = ("reference", "name", "email", "phone")
+    date_hierarchy = "created_at"
     inlines = [OrderItemInline]
-    readonly_fields = ("reference", "short_ref", "subtotal", "total", "provider_ref", "created_at", "updated_at")
+    readonly_fields = (
+        "reference",
+        "short_ref",
+        "subtotal",
+        "total",
+        "provider_ref",
+        "created_at",
+        "updated_at",
+    )
     list_per_page = 30
     save_on_top = True
     fieldsets = (
-        ("Order", {"fields": ("reference", "short_ref", "user", "status", "paid")}),
-        ("Payment", {"fields": ("payment_method", "provider", "provider_ref", "currency", "subtotal", "total")}),
+        ("Order", {"fields": ("reference", "short_ref", "user", "region", "status", "paid")}),
+        (
+            "Payment",
+            {
+                "fields": (
+                    "payment_method",
+                    "provider",
+                    "provider_ref",
+                    "currency",
+                    "subtotal",
+                    "shipping_fee",
+                    "bnpl_surcharge",
+                    "total",
+                )
+            },
+        ),
         ("Customer", {"fields": ("name", "email", "phone")}),
-        ("Shipping", {"fields": ("address_line1", "address_line2", "city", "postal_code", "country")}),
-        ("Attribution", {"fields": ("referral_source", "referral_other"), "classes": ("collapse",)}),
+        (
+            "Shipping",
+            {"fields": ("address_line1", "address_line2", "city", "postal_code", "country")},
+        ),
+        (
+            "Attribution",
+            {"fields": ("referral_source", "referral_other"), "classes": ("collapse",)},
+        ),
         ("Line items snapshot", {"fields": ("line_items",), "classes": ("collapse",)}),
         ("Timestamps", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
     )
@@ -48,14 +87,18 @@ class OrderAdmin(ModelAdmin):
 
     def total_display(self, obj):
         return f"{obj.total} {obj.currency}"
+
     total_display.short_description = "Total"
 
     def status_badge(self, obj):
         bg, fg = STATUS_COLORS.get(obj.status, "#f3f4f6,#374151").split(",")
         return format_html(
             '<span style="background:{};color:{};padding:2px 8px;border-radius:999px;font-size:11px;text-transform:uppercase">{}</span>',
-            bg, fg, obj.status,
+            bg,
+            fg,
+            obj.status,
         )
+
     status_badge.short_description = "Status"
 
     @admin.action(description="Mark as paid")

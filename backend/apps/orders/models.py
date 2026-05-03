@@ -18,10 +18,17 @@ class Order(models.Model):
         TAMARA = "tamara", "Tamara"
         TABBY = "tabby", "Tabby"
 
+    class Region(models.TextChoices):
+        UAE = "UAE", "United Arab Emirates"
+        KSA = "KSA", "Saudi Arabia"
+
     reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="orders",
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
     )
 
     # billing / shipping snapshot
@@ -34,13 +41,33 @@ class Order(models.Model):
     postal_code = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=80, default="UAE")
 
-    # money
+    # region & money
+    region = models.CharField(
+        max_length=3,
+        choices=Region.choices,
+        default=Region.UAE,
+        help_text="Determines shipping fee and which provider keys/URLs are used.",
+    )
     currency = models.CharField(max_length=8, default="AED")
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    bnpl_surcharge = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Tamara/Tabby service fee. 0 for COD.",
+    )
+    total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="subtotal + shipping_fee + bnpl_surcharge",
+    )
 
     # payment
-    payment_method = models.CharField(max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.COD)
+    payment_method = models.CharField(
+        max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.COD
+    )
     provider = models.CharField(max_length=32, blank=True)
     provider_ref = models.CharField(max_length=128, blank=True)
     paid = models.BooleanField(default=False)

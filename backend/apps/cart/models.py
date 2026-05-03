@@ -4,9 +4,13 @@ from django.db import models
 
 class Cart(models.Model):
     """One row per user or per anonymous session key."""
+
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
-        on_delete=models.CASCADE, related_name="cart",
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="cart",
     )
     session_key = models.CharField(max_length=64, null=True, blank=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -14,8 +18,10 @@ class Cart(models.Model):
 
     class Meta:
         constraints = [
+            # `condition=` replaces `check=` in Django 5.1+; the former is
+            # removed in Django 6.0.
             models.CheckConstraint(
-                check=models.Q(user__isnull=False) | models.Q(session_key__isnull=False),
+                condition=models.Q(user__isnull=False) | models.Q(session_key__isnull=False),
                 name="cart_has_owner",
             ),
         ]
@@ -40,4 +46,7 @@ class CartItem(models.Model):
 
     @property
     def line_total(self):
-        return self.product.price * self.quantity
+        # Use effective_price so cart subtotal, line_total, and downstream order
+        # totals all honor an active sale_price. Previously used .price (regular)
+        # which silently overcharged customers on sale items.
+        return self.product.effective_price * self.quantity
