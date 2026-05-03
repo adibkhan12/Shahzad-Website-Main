@@ -8,19 +8,20 @@ import { CartService } from './core/cart.service';
 import { LanguageService } from './core/language.service';
 import { ThemeService } from './core/theme.service';
 import { WishlistService } from './core/wishlist.service';
+import { ChatLauncherComponent } from './shared/chat-launcher.component';
 import { CursorFollowerComponent } from './shared/cursor-follower.component';
 import { FooterComponent } from './shared/footer.component';
 import { HeaderComponent } from './shared/header.component';
 import { IntroShowcaseComponent } from './shared/intro-showcase.component';
 import { ScrollProgressComponent } from './shared/scroll-progress.component';
-import { WhatsappFabComponent } from './shared/whatsapp-fab.component';
+import { TawkToComponent } from './shared/tawk-to.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     CommonModule, RouterOutlet,
-    HeaderComponent, FooterComponent, WhatsappFabComponent,
+    HeaderComponent, FooterComponent, ChatLauncherComponent, TawkToComponent,
     CursorFollowerComponent, ScrollProgressComponent, IntroShowcaseComponent,
   ],
   template: `
@@ -32,7 +33,8 @@ import { WhatsappFabComponent } from './shared/whatsapp-fab.component';
       <router-outlet />
     </main>
     <app-footer />
-    <app-whatsapp-fab />
+    <app-tawk-to />
+    <app-chat-launcher />
     <app-cursor-follower />
   `,
 })

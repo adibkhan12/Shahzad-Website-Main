@@ -4,4 +4,7 @@ export const environment = {
   googleClientId: '',
   currency: 'AED',
   whatsappNumber: '971501234567',
+  // Tawk.to live chat — leave both empty to disable the widget.
+  tawkToPropertyId: '',
+  tawkToWidgetId: 'default',
 };

@@ -45,7 +45,7 @@ import { ProductCardComponent } from '../../shared/product-card.component';
 
         <!-- Info -->
         <div class="md:pt-4">
-          <div class="eyebrow">{{ p.brand }}</div>
+          <div class="eyebrow">{{ p.brand?.name }}</div>
           <h1 class="display text-3xl md:text-5xl tracking-tight leading-tight mt-2">{{ p.title }}</h1>
           <div *ngIf="ratingCount() > 0" class="mt-3 flex items-center gap-2 text-sm text-neutral-600">
             <span class="text-amber-500">

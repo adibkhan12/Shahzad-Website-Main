@@ -1,11 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth.service';
 import { CartService } from '../../core/cart.service';
+
+declare global {
+  interface Window { google?: any; }
+}
 
 @Component({
   selector: 'app-register',
@@ -65,12 +70,19 @@ import { CartService } from '../../core/cart.service';
               {{ (loading() ? 'auth.creating' : 'auth.createBtn') | translate }}
             </button>
           </form>
+
+          <div *ngIf="googleClientId" class="my-6 flex items-center gap-3">
+            <div class="hairline flex-1"></div>
+            <span class="text-xs text-neutral-400 uppercase tracking-wider">{{ 'auth.or' | translate }}</span>
+            <div class="hairline flex-1"></div>
+          </div>
+          <div *ngIf="googleClientId" id="google-btn" class="flex justify-center"></div>
         </div>
       </div>
     </div>
   `,
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   private auth = inject(AuthService);
   private cart = inject(CartService);
   private router = inject(Router);
@@ -85,14 +97,16 @@ export class RegisterComponent {
   };
   loading = signal(false);
   error = signal('');
+  googleClientId = environment.googleClientId;
+
+  ngOnInit() { if (this.googleClientId) this.loadGoogle(); }
 
   submit() {
     this.loading.set(true); this.error.set('');
     this.auth.register(this.form).subscribe({
       next: () => {
         this.loading.set(false);
-        this.cart.mergeAfterLogin().subscribe();
-        this.router.navigate(['/account']);
+        this.afterAuth();
       },
       error: (e) => {
         this.loading.set(false);
@@ -101,5 +115,32 @@ export class RegisterComponent {
         this.error.set(msg);
       },
     });
+  }
+
+  private loadGoogle() {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onload = () => {
+      window.google?.accounts.id.initialize({
+        client_id: this.googleClientId,
+        callback: (r: any) => this.onGoogle(r.credential),
+      });
+      window.google?.accounts.id.renderButton(document.getElementById('google-btn'),
+        { theme: 'outline', size: 'large', shape: 'pill', width: 320 });
+    };
+    document.body.appendChild(s);
+  }
+
+  onGoogle(idToken: string) {
+    this.auth.google(idToken).subscribe({
+      next: () => this.afterAuth(),
+      error: (e) => this.error.set(e?.error?.detail || 'Google sign-in failed.'),
+    });
+  }
+
+  private afterAuth() {
+    this.cart.mergeAfterLogin().subscribe();
+    this.router.navigate(['/account']);
   }
 }

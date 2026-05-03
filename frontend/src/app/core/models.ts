@@ -151,8 +151,11 @@ export interface Order {
   city: string;
   postal_code: string;
   country: string;
+  region: 'UAE' | 'KSA';
   currency: string;
   subtotal: string;
+  shipping_fee: string;
+  bnpl_surcharge: string;
   total: string;
   payment_method: 'cod' | 'tamara' | 'tabby';
   provider: string;
