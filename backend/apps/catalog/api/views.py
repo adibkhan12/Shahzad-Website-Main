@@ -4,7 +4,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.catalog.models import AdBanner, Brand, Category, HomePage, Product, QA, Review, Setting
+from apps.catalog.models import AdBanner, Brand, Category, HomePage, Product, Setting
 
 from .serializers import (
     AdBannerSerializer,
@@ -50,7 +50,10 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     }
     search_fields = ["title", "description", "brand__name"]
     ordering_fields = ["price", "title", "created_at"]
-    ordering = ["-created_at"]
+    # No `ordering = [...]` default here — Product.Meta.ordering already
+    # enforces "-created_at" as the natural default. Setting it on the
+    # ViewSet would make DRF's OrderingFilter override the custom `?sort=`
+    # logic in get_queryset() below, which previously broke price sorting.
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -62,7 +65,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         params = self.request.query_params
         q = params.get("q", "").strip()
         if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(brand__name__icontains=q))
+            qs = qs.filter(
+                Q(title__icontains=q) | Q(description__icontains=q) | Q(brand__name__icontains=q)
+            )
         sort = params.get("sort", "")
         if sort == "price_asc":
             qs = qs.order_by("price")
@@ -74,7 +79,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def featured(self, request):
-        qs = Product.objects.filter(is_active=True, is_featured=True).select_related("brand", "category")[:12]
+        qs = Product.objects.filter(is_active=True, is_featured=True).select_related(
+            "brand", "category"
+        )[:12]
         products = list(qs)
 
         # Promote the admin-picked hero to index 0 so the homepage uses it.
@@ -87,8 +94,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 # Hero isn't in the featured set — fetch and prepend it anyway.
                 hero = (
-                    Product.objects
-                    .filter(id=hero_id, is_active=True)
+                    Product.objects.filter(id=hero_id, is_active=True)
                     .select_related("brand", "category")
                     .first()
                 )
@@ -96,18 +102,20 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                     products.insert(0, hero)
                     products = products[:12]
 
-        return Response(ProductListSerializer(products, many=True, context={"request": request}).data)
+        return Response(
+            ProductListSerializer(products, many=True, context={"request": request}).data
+        )
 
     @action(detail=False, methods=["get"])
     def bestsellers(self, request):
         """Top-selling products, ranked by total units sold on paid / shipped / delivered orders."""
         from django.db.models import Sum
+
         from apps.orders.models import OrderItem
 
         limit = int(request.query_params.get("limit") or 8)
         sold_ids = (
-            OrderItem.objects
-            .filter(
+            OrderItem.objects.filter(
                 order__status__in=["paid", "shipped", "delivered"],
                 product__isnull=False,
                 product__is_active=True,
@@ -130,11 +138,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             sold_ids += filler
 
         products = {
-            p.id: p for p in
-            Product.objects.filter(id__in=sold_ids).select_related("brand", "category")
+            p.id: p
+            for p in Product.objects.filter(id__in=sold_ids).select_related("brand", "category")
         }
         ordered = [products[i] for i in sold_ids if i in products]
-        return Response(ProductListSerializer(ordered, many=True, context={"request": request}).data)
+        return Response(
+            ProductListSerializer(ordered, many=True, context={"request": request}).data
+        )
 
     @action(detail=False, methods=["get"], url_path="by-brand/(?P<brand_name>[^/.]+)")
     def by_brand(self, request, brand_name=None):
@@ -142,10 +152,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         Matches on brand name so 'apple' returns iPhones, MacBooks, iPads, etc.
         """
         limit = int(request.query_params.get("limit") or 8)
-        qs = (
-            Product.objects.filter(is_active=True, brand__name__iexact=brand_name)
-            .select_related("brand", "category")[:limit]
-        )
+        qs = Product.objects.filter(is_active=True, brand__name__iexact=brand_name).select_related(
+            "brand", "category"
+        )[:limit]
         return Response(ProductListSerializer(qs, many=True, context={"request": request}).data)
 
     @action(detail=False, methods=["get"])
@@ -159,7 +168,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             "categories": [{"name": "Phones", "slug": "phones"}, ...]},
            ...]
         """
-        qs = Brand.objects.filter(is_active=True).select_related("category").order_by("order", "name")
+        qs = (
+            Brand.objects.filter(is_active=True)
+            .select_related("category")
+            .order_by("order", "name")
+        )
         category_slug = request.query_params.get("category")
         if category_slug:
             qs = qs.filter(category__slug=category_slug)
