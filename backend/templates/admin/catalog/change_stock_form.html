@@ -1,0 +1,155 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .stock-form-card {
+    max-width: 720px;
+    margin: 1.5rem auto;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 14px rgba(0,0,0,0.04);
+  }
+  :root.dark .stock-form-card,
+  [data-theme="dark"] .stock-form-card {
+    background: rgb(24 24 27);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .stock-form-card h1 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+  }
+  .stock-form-card .lead {
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 1.25rem;
+  }
+  .stock-affected {
+    border-radius: 10px;
+    background: #f9fafb;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  :root.dark .stock-affected,
+  [data-theme="dark"] .stock-affected {
+    background: rgba(255,255,255,0.03);
+  }
+  .stock-affected ul { margin: 0; padding: 0; list-style: none; }
+  .stock-affected li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px dashed rgba(0,0,0,0.06);
+    font-size: 13px;
+  }
+  .stock-affected li:last-child { border-bottom: 0; }
+  .stock-current { color: #6b7280; font-size: 11px; }
+  .stock-form-row { margin-bottom: 1rem; }
+  .stock-form-row label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    color: #374151;
+  }
+  :root.dark .stock-form-row label,
+  [data-theme="dark"] .stock-form-row label { color: #d1d5db; }
+  .stock-form-row input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .stock-form-row input:focus {
+    outline: none;
+    border-color: #740DC2;
+    box-shadow: 0 0 0 3px rgba(116, 13, 194, 0.12);
+  }
+  .stock-form-hint {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 0.35rem;
+  }
+  .stock-form-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .stock-form-buttons button,
+  .stock-form-buttons a {
+    padding: 0.65rem 1.25rem;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .stock-form-buttons button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(116,13,194,0.25);
+  }
+  .stock-form-apply {
+    background: linear-gradient(135deg, #740DC2, #5B0A99);
+    color: #fff;
+  }
+  .stock-form-cancel {
+    background: #f3f4f6;
+    color: #374151;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stock-form-card">
+  <h1>📦 Adjust stock</h1>
+  <p class="lead">Enter a positive number to <strong>add</strong> stock (e.g. <code>+12</code> for received from supplier), or a negative number to <strong>subtract</strong> (e.g. <code>-3</code> for damaged goods). The note is logged to the audit trail.</p>
+
+  <div class="stock-affected">
+    <ul>
+      {% for product in products %}
+        <li>
+          <span>{{ product.title }}</span>
+          <span class="stock-current">current: {{ product.stock }} in stock</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="change_stock_by" />
+    <input type="hidden" name="apply" value="1" />
+    {% for pk in selected_pks %}
+      <input type="hidden" name="_selected_action" value="{{ pk }}" />
+    {% endfor %}
+
+    <div class="stock-form-row">
+      <label for="id_delta">Stock change</label>
+      <input id="id_delta" type="number" name="delta" required autofocus placeholder="e.g. 12 or -3" />
+      <div class="stock-form-hint">Positive adds, negative subtracts. Stock cannot go below 0 — capped at zero if you over-subtract.</div>
+    </div>
+
+    <div class="stock-form-row">
+      <label for="id_note">Note (optional)</label>
+      <input id="id_note" type="text" name="note" placeholder="e.g. Received from Apple distributor, invoice #1234" maxlength="255" />
+      <div class="stock-form-hint">Recorded on the audit log so we know why stock changed.</div>
+    </div>
+
+    <div class="stock-form-buttons">
+      <button type="submit" class="stock-form-apply">Apply to {{ products|length }} product(s)</button>
+      <a href="../" class="stock-form-cancel">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

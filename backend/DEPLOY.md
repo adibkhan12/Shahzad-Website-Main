@@ -87,14 +87,17 @@ echo "0 3 * * * certbot renew --quiet && docker compose -f /opt/shahzadmobile/do
 - [ ] `DEBUG=0` in `.env.prod`
 - [ ] `ALLOWED_HOSTS` lists every domain the site responds on
 - [ ] Strong `POSTGRES_PASSWORD`
-- [ ] SMTP credentials work — order confirmation arrives at a real inbox
+- [ ] Resend account created, API key in `.env.prod` (`EMAIL_HOST_PASSWORD=re_...`)
+- [ ] SPF + DKIM + DMARC DNS records added on `shahzadmobile.com` per Resend's setup wizard
+- [ ] SMTP credentials work — order confirmation arrives at a real inbox (not spam)
 - [ ] Tamara + Tabby production keys (not sandbox) entered, **success/cancel URLs** point at `https://shahzadmobile.com/...`
 - [ ] AWS S3 keys have `s3:GetObject + s3:PutObject` on the bucket
 - [ ] HTTPS server block in `nginx.conf` enabled
 - [ ] First admin user created
 - [ ] Visited `/admin/` and confirmed login works
 - [ ] Placed a real order end-to-end (COD) and received the email
-- [ ] WhatsApp button + Tawk.to chat both load on the homepage
+- [ ] WhatsApp button loads on the homepage (configured via `whatsappNumber` in `frontend/src/environments/environment.prod.ts`)
+- [ ] Tawk.to live chat loads on the homepage — sign up at <https://www.tawk.to/>, copy `propertyId` and `widgetId` from Dashboard → Property → Channels → Chat Widget into `frontend/src/environments/environment.prod.ts` (`tawkToPropertyId`, `tawkToWidgetId`), then rebuild the frontend
 - [ ] Atlas / MongoDB import (if needed) ran via `python manage.py import_from_mongo`
 
 ---

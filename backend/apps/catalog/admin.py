@@ -6,7 +6,6 @@ from import_export.fields import Field
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.filters.admin import RangeNumericFilter
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
-from unfold.decorators import display
 
 try:
     from import_export.admin import ImportExportModelAdmin
@@ -14,12 +13,24 @@ except ImportError:
     ImportExportModelAdmin = ModelAdmin
 
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import reverse
 
-from .models import AdBanner, Brand, Category, HomePage, Product, ProductImage, QA, Review, Setting
-
+from .models import (
+    QA,
+    AdBanner,
+    Brand,
+    Category,
+    HomePage,
+    Product,
+    ProductImage,
+    Review,
+    Setting,
+    StockMovement,
+)
 
 # ---------- Import/Export Resource ----------
+
 
 class ProductResource(resources.ModelResource):
     category = Field(attribute="category__name", column_name="category")
@@ -28,8 +39,17 @@ class ProductResource(resources.ModelResource):
     class Meta:
         model = Product
         fields = (
-            "id", "title", "slug", "brand", "category", "price",
-            "sale_price", "stock", "is_active", "is_featured", "description",
+            "id",
+            "title",
+            "slug",
+            "brand",
+            "category",
+            "price",
+            "sale_price",
+            "stock",
+            "is_active",
+            "is_featured",
+            "description",
         )
         export_order = fields
         import_id_fields = ("slug",)
@@ -43,12 +63,14 @@ class ProductResource(resources.ModelResource):
         brand_name = row.get("brand")
         if brand_name:
             b, _ = Brand.objects.get_or_create(
-                name=brand_name, category=cat,
+                name=brand_name,
+                category=cat,
             )
             row["brand"] = b.pk
 
 
 # ---------- Inlines ----------
+
 
 class ProductImageInline(TabularInline):
     model = ProductImage
@@ -58,8 +80,24 @@ class ProductImageInline(TabularInline):
 
     def preview(self, obj):
         if obj.pk and obj.image:
-            return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.image.url)
+            return format_html(
+                '<img src="{}" style="height:60px;border-radius:6px" />', obj.image.url
+            )
         return ""
+
+
+class StockMovementInline(TabularInline):
+    """Read-only audit trail of stock changes shown on the product change page."""
+
+    model = StockMovement
+    extra = 0
+    can_delete = False
+    fields = ("created_at", "delta", "note", "user")
+    readonly_fields = ("created_at", "delta", "note", "user")
+    ordering = ("-created_at",)
+
+    def has_add_permission(self, request, obj=None):
+        return False  # log entries are created automatically
 
 
 class BrandInline(TabularInline):
@@ -72,9 +110,19 @@ class BrandInline(TabularInline):
 
 # ---------- Category ----------
 
+
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):
-    list_display = ("thumb", "name", "parent", "slug", "brand_count", "product_count", "active_toggle", "order")
+    list_display = (
+        "thumb",
+        "name",
+        "parent",
+        "slug",
+        "brand_count",
+        "product_count",
+        "active_toggle",
+        "order",
+    )
     list_display_links = ("thumb", "name")
     list_editable = ("order",)
     prepopulated_fields = {"slug": ("name",)}
@@ -84,8 +132,10 @@ class CategoryAdmin(ModelAdmin):
     save_on_top = True
     fieldsets = (
         (None, {"fields": ("name", "slug", "parent", "is_active", "order")}),
-        ("Image", {"fields": ("image_file", "image"),
-                   "description": "Upload a file or paste a URL."}),
+        (
+            "Image",
+            {"fields": ("image_file", "image"), "description": "Upload a file or paste a URL."},
+        ),
         ("Advanced", {"fields": ("properties",), "classes": ("collapse",)}),
     )
     actions = ["activate", "deactivate"]
@@ -100,24 +150,37 @@ class CategoryAdmin(ModelAdmin):
     def thumb(self, obj):
         url = obj.image_url
         if url:
-            return format_html('<img src="{}" style="height:36px;width:36px;object-fit:cover;border-radius:6px" />', url)
-        return format_html('<div style="height:36px;width:36px;border-radius:6px;background:#f3f4f6"></div>')
+            return format_html(
+                '<img src="{}" style="height:36px;width:36px;object-fit:cover;border-radius:6px" />',
+                url,
+            )
+        return format_html(
+            '<div style="height:36px;width:36px;border-radius:6px;background:#f3f4f6"></div>'
+        )
+
     thumb.short_description = ""
 
     def brand_count(self, obj):
         return obj._brands
+
     brand_count.short_description = "Brands"
     brand_count.admin_order_field = "_brands"
 
     def product_count(self, obj):
         return obj._products
+
     product_count.short_description = "Products"
     product_count.admin_order_field = "_products"
 
     def active_toggle(self, obj):
         if obj.is_active:
-            return format_html('<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;">ACTIVE</span>')
-        return format_html('<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;">INACTIVE</span>')
+            return format_html(
+                '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;">ACTIVE</span>'
+            )
+        return format_html(
+            '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;">INACTIVE</span>'
+        )
+
     active_toggle.short_description = "Status"
 
     @admin.action(description="Activate selected")
@@ -132,6 +195,7 @@ class CategoryAdmin(ModelAdmin):
 
 
 # ---------- Brand ----------
+
 
 @admin.register(Brand)
 class BrandAdmin(ModelAdmin):
@@ -154,19 +218,32 @@ class BrandAdmin(ModelAdmin):
 
     def logo_thumb(self, obj):
         if obj.logo:
-            return format_html('<img src="{}" style="height:36px;width:36px;object-fit:contain;border-radius:6px;background:#fff;border:1px solid #eee" />', obj.logo.url)
-        return format_html('<div style="height:36px;width:36px;border-radius:6px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9ca3af">{}</div>', obj.name[0] if obj.name else "?")
+            return format_html(
+                '<img src="{}" style="height:36px;width:36px;object-fit:contain;border-radius:6px;background:#fff;border:1px solid #eee" />',
+                obj.logo.url,
+            )
+        return format_html(
+            '<div style="height:36px;width:36px;border-radius:6px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9ca3af">{}</div>',
+            obj.name[0] if obj.name else "?",
+        )
+
     logo_thumb.short_description = ""
 
     def product_count(self, obj):
         return obj._products
+
     product_count.short_description = "Products"
     product_count.admin_order_field = "_products"
 
     def active_toggle(self, obj):
         if obj.is_active:
-            return format_html('<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;">ACTIVE</span>')
-        return format_html('<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;">INACTIVE</span>')
+            return format_html(
+                '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;">ACTIVE</span>'
+            )
+        return format_html(
+            '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;">INACTIVE</span>'
+        )
+
     active_toggle.short_description = "Status"
 
     @admin.action(description="Activate selected")
@@ -182,6 +259,7 @@ class BrandAdmin(ModelAdmin):
 
 # ---------- Product ----------
 
+
 @admin.register(Product)
 class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
     import_form_class = ImportForm
@@ -189,45 +267,102 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
     resource_classes = [ProductResource]
 
     list_display = (
-        "thumb", "title", "brand_display", "category", "price_display",
-        "stock_display", "active_toggle", "is_featured", "edit_link",
+        "thumb",
+        "title",
+        "brand_display",
+        "category",
+        "price_display",
+        "stock_display",
+        "stock",  # editable column — comes after the read-only badge for visual context
+        "active_toggle",
+        "is_featured",
+        "edit_link",
     )
     list_filter = ("category", "brand", "is_active", "is_featured", ("price", RangeNumericFilter))
     list_filter_submit = True
     search_fields = ("title", "description", "brand__name")
     prepopulated_fields = {"slug": ("title",)}
-    list_editable = ("is_featured",)
+    list_editable = ("stock", "is_featured")
     list_display_links = ("thumb", "title")
     list_per_page = 30
     autocomplete_fields = ("category", "brand")
-    inlines = [ProductImageInline]
+    inlines = [ProductImageInline, StockMovementInline]
     save_on_top = True
     fieldsets = (
         (None, {"fields": ("title", "slug", "description")}),
-        ("Hierarchy", {
-            "fields": ("category", "brand"),
-            "description": "Pick a category first, then a brand. Brands are listed with their linked category in the dropdown.",
-        }),
-        ("Pricing", {
-            "fields": ("price", "sale_price"),
-            "description": "Leave <b>Sale price</b> empty for full price. Enter a lower value to put on sale (price will be struck through).",
-        }),
+        (
+            "Hierarchy",
+            {
+                "fields": ("category", "brand"),
+                "description": "Pick a category first, then a brand. Brands are listed with their linked category in the dropdown.",
+            },
+        ),
+        (
+            "Pricing",
+            {
+                "fields": ("price", "sale_price"),
+                "description": "Leave <b>Sale price</b> empty for full price. Enter a lower value to put on sale (price will be struck through).",
+            },
+        ),
         ("Inventory", {"fields": ("stock", "is_active")}),
         ("Display", {"fields": ("is_featured",)}),
-        ("Media (legacy URLs)", {"fields": ("images",), "classes": ("collapse",),
-                                  "description": "Optional JSON list of external image URLs. Prefer uploading files via the inline below."}),
-        ("Variants & properties", {"fields": ("color_variants", "properties"), "classes": ("collapse",)}),
+        (
+            "Media (legacy URLs)",
+            {
+                "fields": ("images",),
+                "classes": ("collapse",),
+                "description": "Optional JSON list of external image URLs. Prefer uploading files via the inline below.",
+            },
+        ),
+        (
+            "Variants & properties",
+            {"fields": ("color_variants", "properties"), "classes": ("collapse",)},
+        ),
     )
-    actions = ["activate", "deactivate", "mark_featured", "unmark_featured",
-               "mark_out_of_stock", "restock_default", "clear_sale", "duplicate"]
+    actions = [
+        "change_stock_by",
+        "activate",
+        "deactivate",
+        "mark_featured",
+        "unmark_featured",
+        "mark_out_of_stock",
+        "restock_default",
+        "clear_sale",
+        "duplicate",
+    ]
+
+    def save_model(self, request, obj, form, change):
+        """
+        Log every stock change made via the admin (change page or list_editable
+        inline edit) into StockMovement, with the user who did it.
+        """
+        delta = 0
+        if change and obj.pk:
+            try:
+                old_stock = Product.objects.values_list("stock", flat=True).get(pk=obj.pk)
+                delta = obj.stock - old_stock
+            except Product.DoesNotExist:
+                pass
+        super().save_model(request, obj, form, change)
+        if delta != 0:
+            StockMovement.objects.create(
+                product=obj,
+                delta=delta,
+                note="Inline edit via admin",
+                user=request.user if request.user.is_authenticated else None,
+            )
 
     def thumb(self, obj):
         url = obj.primary_image
         if url:
             return format_html(
-                '<img src="{}" style="height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.06)" />', url,
+                '<img src="{}" style="height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.06)" />',
+                url,
             )
-        return format_html('<div style="height:48px;width:48px;border-radius:8px;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:18px">📦</div>')
+        return format_html(
+            '<div style="height:48px;width:48px;border-radius:8px;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:18px">📦</div>'
+        )
+
     thumb.short_description = ""
 
     def brand_display(self, obj):
@@ -237,6 +372,7 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
                 obj.brand.name,
             )
         return format_html('<span style="color:#9ca3af;font-size:11px">— no brand —</span>')
+
     brand_display.short_description = "Brand"
     brand_display.admin_order_field = "brand__name"
 
@@ -254,10 +390,13 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
                 '<div><span style="color:#dc2626;font-weight:700">{} AED</span> '
                 '<span style="text-decoration:line-through;color:#9ca3af;font-size:11px;margin-left:4px">{}</span></div>'
                 '<div style="font-size:10px;color:#047857;font-weight:600">SAVE {} AED</div>'
-                '</div>',
-                obj.sale_price, obj.price, save_str,
+                "</div>",
+                obj.sale_price,
+                obj.price,
+                save_str,
             )
         return format_html('<span style="font-weight:600">{} AED</span>', obj.price)
+
     price_display.short_description = "Price"
     price_display.admin_order_field = "price"
 
@@ -270,15 +409,23 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
             color, bg, label = "#166534", "#dcfce7", f"{obj.stock} in stock"
         return format_html(
             '<span style="background:{};color:{};padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600">{}</span>',
-            bg, color, label,
+            bg,
+            color,
+            label,
         )
+
     stock_display.short_description = "Stock"
     stock_display.admin_order_field = "stock"
 
     def active_toggle(self, obj):
         if obj.is_active:
-            return format_html('<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600">● ACTIVE</span>')
-        return format_html('<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600">○ INACTIVE</span>')
+            return format_html(
+                '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600">● ACTIVE</span>'
+            )
+        return format_html(
+            '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600">○ INACTIVE</span>'
+        )
+
     active_toggle.short_description = "Status"
     active_toggle.admin_order_field = "is_active"
 
@@ -288,9 +435,10 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
             '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'
             '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
-            '</svg>Edit</a>',
+            "</svg>Edit</a>",
             obj.id,
         )
+
     edit_link.short_description = ""
 
     # --- bulk actions ---
@@ -316,12 +464,36 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
 
     @admin.action(description="Set stock to 0 (out of stock)")
     def mark_out_of_stock(self, request, queryset):
-        n = queryset.update(stock=0)
+        n = 0
+        for product in queryset.exclude(stock=0):
+            delta = -product.stock
+            product.stock = 0
+            product.save(update_fields=["stock"])
+            StockMovement.objects.create(
+                product=product,
+                delta=delta,
+                note="Marked out of stock via bulk action",
+                user=request.user if request.user.is_authenticated else None,
+            )
+            n += 1
         self.message_user(request, f"{n} marked out of stock.", messages.SUCCESS)
 
     @admin.action(description="Restock to 15 units")
     def restock_default(self, request, queryset):
-        n = queryset.update(stock=15)
+        n = 0
+        for product in queryset:
+            if product.stock == 15:
+                continue
+            delta = 15 - product.stock
+            product.stock = 15
+            product.save(update_fields=["stock"])
+            StockMovement.objects.create(
+                product=product,
+                delta=delta,
+                note="Restocked to default (15) via bulk action",
+                user=request.user if request.user.is_authenticated else None,
+            )
+            n += 1
         self.message_user(request, f"{n} restocked.", messages.SUCCESS)
 
     @admin.action(description="End sale (clear sale price)")
@@ -340,8 +512,58 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
             count += 1
         self.message_user(request, f"Duplicated {count} product(s).", messages.SUCCESS)
 
+    @admin.action(description="📦 Adjust stock by N (received / damaged / count fix)")
+    def change_stock_by(self, request, queryset):
+        """
+        Two-step bulk action:
+        1) First call (no `apply` flag) — render an intermediate form asking
+           for delta + optional note, listing the selected products.
+        2) Second call (`apply=1`) — apply the delta to every selected
+           product, log a StockMovement per product, and return to changelist.
+        """
+        if request.POST.get("apply") == "1":
+            try:
+                delta = int(request.POST.get("delta", "0"))
+            except ValueError:
+                delta = 0
+            note = (request.POST.get("note") or "").strip()
+            if delta == 0:
+                self.message_user(request, "Delta was 0 — nothing changed.", messages.WARNING)
+                return None
+            updated = 0
+            for product in queryset:
+                product.stock = max(0, product.stock + delta)
+                product.save(update_fields=["stock"])
+                StockMovement.objects.create(
+                    product=product,
+                    delta=delta,
+                    note=note or "Bulk stock adjustment",
+                    user=request.user if request.user.is_authenticated else None,
+                )
+                updated += 1
+            sign = "+" if delta > 0 else ""
+            self.message_user(
+                request,
+                f"Adjusted stock by {sign}{delta} for {updated} product(s).",
+                messages.SUCCESS,
+            )
+            return None  # redirect back to changelist
+
+        # First call: render the intermediate form.
+        return render(
+            request,
+            "admin/catalog/change_stock_form.html",
+            {
+                "title": "Adjust stock",
+                "products": queryset,
+                "selected_pks": [str(pk) for pk in queryset.values_list("pk", flat=True)],
+                "opts": self.model._meta,
+            },
+        )
+
 
 # ---------- Banners & misc ----------
+
 
 @admin.register(AdBanner)
 class AdBannerAdmin(ModelAdmin):
@@ -350,10 +572,13 @@ class AdBannerAdmin(ModelAdmin):
     list_filter = ("is_active",)
     fieldsets = (
         ("English (default)", {"fields": ("title", "desc", "button")}),
-        ("العربية (Arabic)", {
-            "fields": ("title_ar", "desc_ar", "button_ar"),
-            "description": "Leave blank to fall back to the English copy.",
-        }),
+        (
+            "العربية (Arabic)",
+            {
+                "fields": ("title_ar", "desc_ar", "button_ar"),
+                "description": "Leave blank to fall back to the English copy.",
+            },
+        ),
         ("Link & status", {"fields": ("link", "is_active")}),
         ("Visual", {"fields": ("image_file", "image", "bg", "order")}),
     )
@@ -367,14 +592,22 @@ class AdBannerAdmin(ModelAdmin):
     def bg_swatch(self, obj):
         return format_html(
             '<span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:{};vertical-align:middle;border:1px solid rgba(0,0,0,0.1)"></span>'
-            ' <code style="font-size:11px">{}</code>', obj.bg, obj.bg,
+            ' <code style="font-size:11px">{}</code>',
+            obj.bg,
+            obj.bg,
         )
+
     bg_swatch.short_description = "Colour"
 
     def active_toggle(self, obj):
         if obj.is_active:
-            return format_html('<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;">ACTIVE</span>')
-        return format_html('<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;">INACTIVE</span>')
+            return format_html(
+                '<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:999px;font-size:11px;">ACTIVE</span>'
+            )
+        return format_html(
+            '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:999px;font-size:11px;">INACTIVE</span>'
+        )
+
     active_toggle.short_description = "Status"
 
 
@@ -405,6 +638,7 @@ class QAAdmin(ModelAdmin):
 
     def answered(self, obj):
         return bool(obj.answer)
+
     answered.boolean = True
 
 
@@ -414,19 +648,64 @@ class SettingAdmin(ModelAdmin):
     search_fields = ("name",)
 
 
+@admin.register(StockMovement)
+class StockMovementAdmin(ModelAdmin):
+    """
+    Top-level view of every stock adjustment ever made via the admin.
+    Read-only — adjustments happen via the Product list / Product page,
+    and they auto-create rows here.
+    """
+
+    list_display = ("created_at", "product", "delta_badge", "note", "user")
+    list_filter = ("user", "created_at")
+    search_fields = ("product__title", "note", "user__email")
+    readonly_fields = ("product", "delta", "note", "user", "created_at")
+    date_hierarchy = "created_at"
+    list_per_page = 50
+    autocomplete_fields = ("product",)
+
+    def delta_badge(self, obj):
+        if obj.delta > 0:
+            return format_html(
+                '<span style="background:#dcfce7;color:#166534;padding:2px 10px;'
+                'border-radius:999px;font-size:11px;font-weight:600">+{}</span>',
+                obj.delta,
+            )
+        return format_html(
+            '<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;'
+            'border-radius:999px;font-size:11px;font-weight:600">{}</span>',
+            obj.delta,
+        )
+
+    delta_badge.short_description = "Delta"
+    delta_badge.admin_order_field = "delta"
+
+    def has_add_permission(self, request):
+        return False  # only auto-created via Product save / bulk action
+
+    def has_change_permission(self, request, obj=None):
+        return False  # immutable audit log
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(HomePage)
 class HomePageAdmin(ModelAdmin):
     """Singleton admin page for homepage configuration. Pick a hero product from a dropdown."""
 
     autocomplete_fields = ("hero_product",)
     fieldsets = (
-        ("Hero", {
-            "fields": ("hero_product",),
-            "description": (
-                "Pick the product you want shown as the big hero image on the homepage. "
-                "Leave blank to fall back to the most recently featured product."
-            ),
-        }),
+        (
+            "Hero",
+            {
+                "fields": ("hero_product",),
+                "description": (
+                    "Pick the product you want shown as the big hero image on the homepage. "
+                    "Leave blank to fall back to the most recently featured product."
+                ),
+            },
+        ),
     )
     readonly_fields = ("updated_at",)
 

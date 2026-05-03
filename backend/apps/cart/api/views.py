@@ -12,7 +12,11 @@ def resolve_cart(request, create=True) -> Cart | None:
     if request.user.is_authenticated:
         cart, _ = Cart.objects.get_or_create(user=request.user)
         return cart
-    session_key = request.headers.get("X-Guest-Session") or request.data.get("session_key") if hasattr(request, "data") else request.headers.get("X-Guest-Session")
+    session_key = (
+        request.headers.get("X-Guest-Session") or request.data.get("session_key")
+        if hasattr(request, "data")
+        else request.headers.get("X-Guest-Session")
+    )
     if not session_key:
         session_key = request.headers.get("X-Guest-Session")
     if not session_key:
@@ -99,6 +103,7 @@ class CartMergeView(APIView):
 
     def post(self, request):
         from apps.cart.services import merge_guest_cart_into_user
+
         session_key = request.data.get("session_key") or request.headers.get("X-Guest-Session")
         if session_key:
             merge_guest_cart_into_user(request.user, session_key)

@@ -22,3 +22,4 @@ frontend/.angular/
 coverage/
 .pytest_cache/
 *.sqlite3-journal
+PROJECT_PLAN.md

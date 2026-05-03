@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
@@ -44,7 +45,11 @@ class Brand(models.Model):
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
     category = models.ForeignKey(
-        Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="brands",
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="brands",
         help_text="Optional: if set, this brand appears under this category in the hierarchy.",
     )
     logo = models.ImageField(upload_to="brands/", blank=True, null=True)
@@ -89,11 +94,15 @@ class Product(models.Model):
     description = models.TextField(blank=True)
 
     price = models.DecimalField(
-        max_digits=10, decimal_places=2,
+        max_digits=10,
+        decimal_places=2,
         help_text="Regular price (shown struck-through when sale_price is set).",
     )
     sale_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
         help_text="Optional discounted price. If set and lower than price, the product is shown as on sale.",
     )
 
@@ -103,7 +112,11 @@ class Product(models.Model):
     properties = models.JSONField(default=dict, blank=True)
 
     brand = models.ForeignKey(
-        Brand, null=True, blank=True, on_delete=models.SET_NULL, related_name="products",
+        Brand,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="products",
     )
     category = models.ForeignKey(
         Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="products"
@@ -171,6 +184,38 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"{self.product.title} image"
+
+
+class StockMovement(models.Model):
+    """
+    Audit log of every admin-initiated stock change (received from supplier,
+    damaged, manual count correction, etc.). Every stock change made through
+    the admin — inline list edit, bulk action, or change page — leaves a row
+    here with the user, delta, and an optional note.
+
+    Sales are NOT logged here — they're already visible via Orders.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="stock_movements")
+    delta = models.IntegerField(help_text="Positive for restock, negative for damaged/correction.")
+    note = models.CharField(max_length=255, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="stock_movements",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Stock movement"
+        verbose_name_plural = "Stock movements"
+
+    def __str__(self):
+        sign = "+" if self.delta >= 0 else ""
+        return f"{self.product.title} {sign}{self.delta}"
 
 
 class Review(models.Model):

@@ -1,7 +1,7 @@
 from django.db.models import Avg, Count
 from rest_framework import serializers
 
-from apps.catalog.models import AdBanner, Brand, Category, Product, QA, Review, Setting
+from apps.catalog.models import QA, AdBanner, Brand, Category, Product, Review, Setting
 
 
 def _abs(request, url: str) -> str:
@@ -16,7 +16,17 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ["id", "name", "slug", "parent", "image", "properties", "is_active", "order", "product_count"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "parent",
+            "image",
+            "properties",
+            "is_active",
+            "order",
+            "product_count",
+        ]
 
     def get_image(self, obj) -> str:
         return _abs(self.context.get("request"), obj.image_url)
@@ -30,8 +40,16 @@ class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
         fields = [
-            "id", "name", "slug", "category", "category_name", "category_slug",
-            "logo", "description", "is_active", "order",
+            "id",
+            "name",
+            "slug",
+            "category",
+            "category_name",
+            "category_slug",
+            "logo",
+            "description",
+            "is_active",
+            "order",
         ]
 
     def get_logo(self, obj) -> str:
@@ -66,9 +84,22 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "title", "slug", "price", "sale_price", "effective_price", "on_sale",
-            "primary_image", "images", "stock", "brand", "category",
-            "category_slug", "category_name", "is_active", "is_featured",
+            "id",
+            "title",
+            "slug",
+            "price",
+            "sale_price",
+            "effective_price",
+            "on_sale",
+            "primary_image",
+            "images",
+            "stock",
+            "brand",
+            "category",
+            "category_slug",
+            "category_name",
+            "is_active",
+            "is_featured",
         ]
 
     def get_primary_image(self, obj) -> str:
@@ -97,10 +128,27 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "title", "slug", "description", "price", "sale_price", "effective_price", "on_sale",
-            "images", "primary_image", "stock", "color_variants", "properties",
-            "brand", "category", "is_active", "is_featured",
-            "rating_avg", "rating_count", "created_at", "updated_at",
+            "id",
+            "title",
+            "slug",
+            "description",
+            "price",
+            "sale_price",
+            "effective_price",
+            "on_sale",
+            "images",
+            "primary_image",
+            "stock",
+            "color_variants",
+            "properties",
+            "brand",
+            "category",
+            "is_active",
+            "is_featured",
+            "rating_avg",
+            "rating_count",
+            "created_at",
+            "updated_at",
         ]
 
     def get_primary_image(self, obj) -> str:
