@@ -1,33 +1,52 @@
-# Deployment guide — Shahzad Arshad Electronics
+# Deployment guide — Shahzad Mobile
 
-The whole stack runs in three Docker containers: **Postgres**, **Django/gunicorn**, **nginx**. One command brings everything up.
+The whole stack runs as **one Docker image** (Django + Angular SPA bundled by the multi-stage `Dockerfile` at the repo root) plus **one Postgres instance**. Pick whichever host fits — VPS, Fly.io, Railway, or Render. The image is the same.
 
 ---
 
-## What you need on the server
+## Architecture
 
-- A Linux VPS (Ubuntu 22.04+ recommended) — Hetzner, DigitalOcean, Linode, or any cloud
-- A domain pointed at the server (e.g. `shahzadmobile.com` → server IP via A record)
+```
+   shahzadmobile.com  ───►  ┌─────────────────────┐  ───►  Postgres (managed
+                            │   web container     │         or in-stack)
+                            │                     │
+                            │  /api/v1/  → DRF    │
+                            │  /admin/   → admin  │
+                            │  /*        → SPA    │
+                            │                     │
+                            │  gunicorn + 3 workers
+                            │  WhiteNoise serves SPA + /static
+                            └─────────────────────┘
+```
+
+One container, one process tree, no separate frontend service.
+
+---
+
+## Path A — VPS (Hetzner / DigitalOcean / Hostinger)
+
+### What you need
+
+- A Linux VPS (Ubuntu 22.04+) — Hetzner CX22 (~€4/month) is plenty
+- A domain pointed at the server
 - Docker + Docker Compose v2:
   ```bash
   curl -fsSL https://get.docker.com | sh
   sudo usermod -aG docker $USER && newgrp docker
   ```
 
----
-
-## First-time deploy
+### First-time deploy
 
 ```bash
 # 1. Clone the project to the server
 git clone <your-repo-url> /opt/shahzadmobile && cd /opt/shahzadmobile
 
 # 2. Create the production env file
-cp .env.prod.example .env.prod
-nano .env.prod        # fill in SECRET_KEY, POSTGRES_PASSWORD, EMAIL_*, S3 keys, payment keys
+cp .env.prod.example backend/.env.prod
+nano backend/.env.prod        # fill in SECRET_KEY, POSTGRES_PASSWORD, EMAIL_*, payment keys, etc.
 
 # 3. Build + start everything
-docker compose --env-file .env.prod up -d --build
+docker compose --env-file backend/.env.prod up -d --build
 
 # 4. Watch logs to confirm migrations + collectstatic ran cleanly
 docker compose logs -f web
@@ -35,98 +54,131 @@ docker compose logs -f web
 # 5. Create your admin user
 docker compose exec web python manage.py createsuperuser
 
-# 6. (Optional first deploy only) seed catalog + repair services
-docker compose exec -e SEED_DEMO=1 web python manage.py seed_demo
-docker compose exec web python manage.py seed_repairs
+# 6. (Optional) seed catalog + repair services + demo orders
+docker compose exec web python manage.py seed_all
 ```
 
-The site is now reachable on **port 80**. Visit `http://your-server-ip/` to confirm.
+The site is reachable on **port 80**. Visit `http://your-server-ip/` and you should see the Angular SPA. `/admin/` shows the Django admin. `/api/v1/catalog/products/` returns JSON.
 
----
+### HTTPS
 
-## HTTPS with Let's Encrypt (do this next)
-
-The simplest route is `certbot` running on the host:
+The compose stack listens on plain HTTP. For HTTPS, the simplest path is to put **Cloudflare** in front of the VPS (free, automatic TLS, fast in MENA). Alternatively run **Caddy** on the host:
 
 ```bash
-sudo apt install certbot
-sudo certbot certonly --webroot -w /opt/shahzadmobile/certbot \
-    -d shahzadmobile.com -d www.shahzadmobile.com \
-    --email sa@shahzadmobile.com --agree-tos -n
+sudo apt install caddy
+sudo nano /etc/caddy/Caddyfile
 ```
 
-Then copy the certs into `deploy/certs/` (or symlink), uncomment the HTTPS server block in `deploy/nginx.conf`, and:
+```
+shahzadmobile.com, www.shahzadmobile.com {
+    reverse_proxy localhost:80
+}
+```
+
 ```bash
-docker compose restart nginx
-```
-Set up auto-renewal:
-```bash
-echo "0 3 * * * certbot renew --quiet && docker compose -f /opt/shahzadmobile/docker-compose.yml restart nginx" | sudo crontab -
+sudo systemctl restart caddy
 ```
 
----
+Caddy auto-issues Let's Encrypt certs and renews them.
 
-## Day-2 operations
+### Day-2 ops
 
 | Task | Command |
 |---|---|
-| Pull a new release | `git pull && docker compose --env-file .env.prod up -d --build` |
+| Pull a new release | `git pull && docker compose --env-file backend/.env.prod up -d --build` |
 | Run a one-off command | `docker compose exec web python manage.py <command>` |
-| Open a Django shell | `docker compose exec web python manage.py shell` |
-| Tail logs | `docker compose logs -f web` or `nginx` or `db` |
-| Backup the DB | `docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB | gzip > backup-$(date +%F).sql.gz` |
+| Django shell | `docker compose exec web python manage.py shell` |
+| Tail logs | `docker compose logs -f web` or `db` |
+| Backup the DB | `docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB \| gzip > backup-$(date +%F).sql.gz` |
 | Restore | `gunzip -c backup.sql.gz \| docker compose exec -T db psql -U $POSTGRES_USER -d $POSTGRES_DB` |
 | Stop everything | `docker compose down` |
 | Stop AND wipe DB | `docker compose down -v` (⚠ deletes Postgres volume) |
 
 ---
 
-## Runbook checklist before going live
+## Path B — Fly.io
 
-- [ ] `SECRET_KEY` set to a random 50-char string (`python -c "import secrets;print(secrets.token_urlsafe(50))"`)
-- [ ] `DEBUG=0` in `.env.prod`
-- [ ] `ALLOWED_HOSTS` lists every domain the site responds on
-- [ ] Strong `POSTGRES_PASSWORD`
-- [ ] Resend account created, API key in `.env.prod` (`EMAIL_HOST_PASSWORD=re_...`)
-- [ ] SPF + DKIM + DMARC DNS records added on `shahzadmobile.com` per Resend's setup wizard
-- [ ] SMTP credentials work — order confirmation arrives at a real inbox (not spam)
-- [ ] Tamara + Tabby production keys (not sandbox) entered, **success/cancel URLs** point at `https://shahzadmobile.com/...`
-- [ ] AWS S3 keys have `s3:GetObject + s3:PutObject` on the bucket
-- [ ] HTTPS server block in `nginx.conf` enabled
-- [ ] First admin user created
-- [ ] Visited `/admin/` and confirmed login works
-- [ ] Placed a real order end-to-end (COD) and received the email
-- [ ] WhatsApp button loads on the homepage (configured via `whatsappNumber` in `frontend/src/environments/environment.prod.ts`)
-- [ ] Tawk.to live chat loads on the homepage — sign up at <https://www.tawk.to/>, copy `propertyId` and `widgetId` from Dashboard → Property → Channels → Chat Widget into `frontend/src/environments/environment.prod.ts` (`tawkToPropertyId`, `tawkToWidgetId`), then rebuild the frontend
-- [ ] Atlas / MongoDB import (if needed) ran via `python manage.py import_from_mongo`
+Fly auto-detects the `Dockerfile` at the repo root.
+
+```bash
+# install flyctl
+curl -L https://fly.io/install.sh | sh
+
+# from repo root
+fly launch                    # creates fly.toml, asks region (pick fra/cdg for MENA-friendly)
+fly postgres create           # provisions managed Postgres, attaches DATABASE_URL automatically
+fly secrets set SECRET_KEY=$(python -c "import secrets;print(secrets.token_urlsafe(50))") \
+                ALLOWED_HOSTS=shahzadmobile.com,www.shahzadmobile.com \
+                EMAIL_HOST=smtp.resend.com EMAIL_HOST_PASSWORD=re_yourkey \
+                # ... rest of env vars per .env.prod.example
+
+fly deploy
+```
+
+Fly handles HTTPS automatically. Map your domain with `fly certs add shahzadmobile.com`.
 
 ---
 
-## Architecture (compose services)
+## Path C — Railway
 
-```
-                                 ┌─────────────────┐
-                          80/443 │     nginx       │  → static + media + proxy
-                                 │ (deploy/nginx)  │
-                                 └────────┬────────┘
-                                          │ proxy_pass http://web:8000
-                                 ┌────────▼────────┐
-                                 │      web        │  Django + gunicorn (3 workers)
-                                 │   (Dockerfile)  │
-                                 └────────┬────────┘
-                                          │ DATABASE_URL
-                                 ┌────────▼────────┐
-                                 │       db        │  Postgres 16
-                                 │ (postgres-data) │
-                                 └─────────────────┘
-```
+Railway auto-detects the `Dockerfile`. Add a Postgres plugin from the dashboard — Railway sets `DATABASE_URL` for you.
+
+1. Sign up at <https://railway.app>, connect your GitHub repo
+2. New Project → Deploy from GitHub Repo → pick `Shahzad-Website`
+3. Add a Postgres plugin (one click)
+4. **Variables** → paste the rest of `.env.prod.example` values (skip `DATABASE_URL` — auto-set)
+5. Railway builds the Dockerfile, deploys, gives you `*.up.railway.app` URL
+6. Add custom domain `shahzadmobile.com` in **Settings → Networking**
+
+Every push to `main` auto-deploys.
+
+---
+
+## Path D — Render
+
+Same idea: dashboard creates a "Web Service" from your GitHub repo, picks up the Dockerfile.
+
+1. Sign up at <https://render.com>, connect GitHub
+2. **New → Web Service** → pick the repo, build using "Dockerfile"
+3. **New → PostgreSQL** (free tier or paid). Copy the internal `DATABASE_URL`.
+4. Back on the Web Service, add env vars (paste from `.env.prod.example` + the `DATABASE_URL` from step 3)
+5. Deploy. Render provides `*.onrender.com` URL + auto-HTTPS.
+6. Add custom domain in Render dashboard.
+
+Every push to `main` auto-deploys.
+
+---
+
+## Runbook checklist before going live
+
+- [ ] `SECRET_KEY` set to a random 50-char string (`python -c "import secrets;print(secrets.token_urlsafe(50))"`)
+- [ ] `DEBUG=0`
+- [ ] `ALLOWED_HOSTS` lists every domain (e.g. `shahzadmobile.com,www.shahzadmobile.com`)
+- [ ] Strong `POSTGRES_PASSWORD` (or managed Postgres credentials, depending on host)
+- [ ] Resend account created, API key set as `EMAIL_HOST_PASSWORD=re_...`
+- [ ] SPF + DKIM + DMARC DNS records added on `shahzadmobile.com` per Resend's setup wizard
+- [ ] Email pipeline verified: `python manage.py send_test_email you@example.com` lands in your inbox (not spam)
+- [ ] Tamara prod API key set (`TAMARA_API_KEY` and `TAMARA_NOTIFICATION_TOKEN`)
+- [ ] Tamara dashboard → success/cancel/notification URLs all point at `https://shahzadmobile.com/...`
+- [ ] Tabby UAE + KSA secret keys set (`TABBY_SECRET_KEY_UAE`, `TABBY_SECRET_KEY_KSA`)
+- [ ] Tabby webhook secret set (`TABBY_WEBHOOK_SECRET`) and matches the value configured in Tabby's dashboard
+- [ ] AWS S3 keys (if `USE_S3=1`) have `s3:GetObject + s3:PutObject` on the bucket
+- [ ] First admin user created (`createsuperuser`)
+- [ ] `/admin/` login works
+- [ ] Placed a real test order (COD) and received the confirmation email
+- [ ] Placed a real test order (Tamara, 1 AED) and the redirect to Tamara checkout works
+- [ ] Google OAuth Client ID set in `frontend/src/environments/environment.prod.ts`; production domain added to "Authorized JavaScript origins" at <https://console.cloud.google.com/apis/credentials>
+- [ ] Tawk.to `propertyId` / `widgetId` set in `environment.prod.ts` (or left empty to disable)
+- [ ] WhatsApp number set in `environment.prod.ts`
+- [ ] Frontend rebuilt with the new env values (the Dockerfile does this automatically on every build)
 
 ---
 
 ## Troubleshooting
 
-- **"Bad Gateway" on /** — `web` container failed to start. `docker compose logs web` will show a Django stack trace (usually a missing env var or a migration error).
-- **Static files not loading** — `collectstatic` didn't run, or nginx volume isn't mounted. Re-run `docker compose up -d --build`.
-- **`ALLOWED_HOSTS` error** — add your domain (and `www.` variant) to `.env.prod` and restart.
-- **DB connection refused** — check `POSTGRES_PASSWORD` is identical in `.env.prod` and the auto-built `DATABASE_URL`. The entrypoint waits up to 60 s for the DB.
-- **Mongo import fails** — see the IP allowlist guidance in the project chat. Use a VPN or temporarily allow `0.0.0.0/0` in Atlas Network Access.
+- **"Bad Gateway" / "Application Error" on `/`** — the `web` container failed to start. Check logs (`docker compose logs web`, `fly logs`, Render/Railway logs). Most often a missing required env var or a migration failure.
+- **Frontend shows a 404 / blank page** — the SPA bundle didn't get into the container. Rebuild from scratch (`docker compose build --no-cache web`).
+- **Static files not loading** — `collectstatic` didn't run; check the entrypoint log line. WhiteNoise serves them; no separate volume is required for cloud hosts (only for VPS).
+- **`ALLOWED_HOSTS` error** — add your domain (and `www.` variant) to env, restart.
+- **DB connection refused** — check `DATABASE_URL`. On VPS the entrypoint waits up to 60s for the DB. On managed hosts the DATABASE_URL is auto-set.
+- **Tamara / Tabby errors at checkout** — check `runserver`/container logs. With `DEBUG=True` the upstream provider error reaches the browser response. With `DEBUG=False` the customer sees a generic "currently unavailable" message and the upstream error is in the container log.

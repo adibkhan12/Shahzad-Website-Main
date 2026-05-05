@@ -1,3 +1,8 @@
+# Single-deployment Docker Compose for production.
+# Two services: Postgres + a single Django+Angular container.
+# The container serves the API at /api/v1/, the admin at /admin/, and the
+# Angular SPA at every other path.
+
 services:
   db:
     image: postgres:16-alpine
@@ -14,8 +19,8 @@ services:
       timeout: 5s
       retries: 10
 
-  backend:
-    build: ./backend
+  web:
+    build: .
     restart: unless-stopped
     depends_on:
       db:
@@ -26,19 +31,8 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    expose:
-      - "8000"
-
-  frontend:
-    build: ./frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
     ports:
-      - "80:80"
-    volumes:
-      - static_volume:/srv/static:ro
-      - media_volume:/srv/media:ro
+      - "80:8000"
 
 volumes:
   postgres_data:
