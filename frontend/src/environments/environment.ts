@@ -1,7 +1,7 @@
 export const environment = {
   production: false,
-  // apiUrl: 'http://localhost:8000/api/v1',
-  apiUrl: 'https://fxtkktdz-8000.inc1.devtunnels.ms/api/v1',
+  apiUrl: 'http://localhost:8000/api/v1',
+  // apiUrl: 'https://fxtkktdz-8000.inc1.devtunnels.ms/api/v1',
   googleClientId: '990044935377-gj804ac9q7uursj0tt2tnilme5lgt4pr.apps.googleusercontent.com',
   currency: 'AED',
   whatsappNumber: '971501234567',

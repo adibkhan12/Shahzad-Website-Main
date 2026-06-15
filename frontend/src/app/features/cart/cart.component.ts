@@ -47,7 +47,7 @@ import { CartService } from '../../core/cart.service';
               <div class="flex items-center border border-neutral-200 rounded-full overflow-hidden">
                 <button (click)="update(i.id, i.quantity-1)" class="w-9 h-9 text-neutral-500 hover:bg-neutral-50" aria-label="Decrease">−</button>
                 <input type="number" [ngModel]="i.quantity" (ngModelChange)="update(i.id, $event)"
-                       min="1" class="w-10 h-9 text-center border-0 focus:outline-none text-sm" />
+                       min="1" class="w-10 h-9 text-center border-0 focus:outline-none text-sm bg-transparent text-ink" />
                 <button (click)="update(i.id, i.quantity+1)" class="w-9 h-9 text-neutral-500 hover:bg-neutral-50" aria-label="Increase">+</button>
               </div>
               <div class="md:w-24 text-end text-sm font-semibold whitespace-nowrap">{{ i.line_total }} {{ 'common.currency' | translate }}</div>

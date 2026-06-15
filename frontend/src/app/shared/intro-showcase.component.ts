@@ -759,7 +759,7 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
       border-bottom: 1px solid rgba(10,9,8,0.08);
     }
     .mini-logo {
-      font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+      font-family: 'Fraunces', ui-serif, Georgia, serif;
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 0.14em;
@@ -780,7 +780,7 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
       margin-top: 4px;
     }
     .mini-title {
-      font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+      font-family: 'Fraunces', ui-serif, Georgia, serif;
       font-size: 24px;
       line-height: 1;
       letter-spacing: -0.02em;

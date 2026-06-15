@@ -17,6 +17,7 @@ class CheckoutSerializer(serializers.Serializer):
         choices=[c[0] for c in Order.Region.choices], default=Order.Region.UAE
     )
     payment_method = serializers.ChoiceField(choices=[c[0] for c in Order.PaymentMethod.choices])
+    coupon_code = serializers.CharField(required=False, allow_blank=True, max_length=32)
     referral_source = serializers.CharField(required=False, allow_blank=True, max_length=64)
     referral_other = serializers.CharField(required=False, allow_blank=True, max_length=255)
 

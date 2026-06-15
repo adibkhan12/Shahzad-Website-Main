@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from apps.cart.api.views import resolve_cart
 from apps.catalog.models import Product
+from apps.coupons.models import Coupon, CouponRedemption
 from apps.orders.emails import send_order_confirmation
 from apps.orders.models import Order, OrderItem
 from apps.payments.providers import get_provider
@@ -59,25 +60,32 @@ class CheckoutView(APIView):
         if cart is None or not cart.items.exists():
             return Response({"detail": "Cart is empty."}, status=400)
 
-        subtotal = sum(
-            (i.line_total for i in cart.items.select_related("product")),
-            Decimal("0"),
-        )
+        cart_items = list(cart.items.select_related("product"))
+        subtotal = sum((i.line_total for i in cart_items), Decimal("0"))
 
         # Region-aware shipping fee.
         region = data.get("region", Order.Region.UAE)
         shipping_fee = Decimal(str(settings.SHIPPING[region]["fee"]))
 
-        # 9% BNPL surcharge — calculated on subtotal only (not shipping).
-        # Quantize to 2dp to keep it currency-shaped.
-        if data["payment_method"] in (Order.PaymentMethod.TAMARA, Order.PaymentMethod.TABBY):
-            bnpl_surcharge = (subtotal * (settings.BNPL_SURCHARGE_PCT / Decimal("100"))).quantize(
-                Decimal("0.01")
+        # Coupon — re-validate server-side, never trust the frontend.
+        coupon_code = (data.get("coupon_code") or "").strip().upper()
+        coupon = None
+        discount_amount = Decimal("0")
+        if coupon_code:
+            coupon = Coupon.objects.filter(code=coupon_code).first()
+            if coupon is None:
+                raise DRFValidationError({"coupon_code": "Coupon code not recognised."})
+            ok, message = coupon.validate_for(
+                subtotal=subtotal,
+                region=region,
+                user=request.user if request.user.is_authenticated else None,
+                cart_items=cart_items,
             )
-        else:
-            bnpl_surcharge = Decimal("0")
+            if not ok:
+                raise DRFValidationError({"coupon_code": message})
+            discount_amount = coupon.compute_discount(subtotal)
 
-        total = subtotal + shipping_fee + bnpl_surcharge
+        total = subtotal + shipping_fee - discount_amount
 
         order = Order.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -93,13 +101,24 @@ class CheckoutView(APIView):
             currency=settings.CURRENCY,
             subtotal=subtotal,
             shipping_fee=shipping_fee,
-            bnpl_surcharge=bnpl_surcharge,
+            bnpl_surcharge=Decimal("0"),
+            coupon_code=coupon_code,
+            discount_amount=discount_amount,
             total=total,
             payment_method=data["payment_method"],
             provider=data["payment_method"],
             referral_source=data.get("referral_source", ""),
             referral_other=data.get("referral_other", ""),
         )
+
+        if coupon is not None:
+            CouponRedemption.objects.create(
+                coupon=coupon,
+                user=request.user if request.user.is_authenticated else None,
+                order=order,
+                discount_amount=discount_amount,
+            )
+            Coupon.objects.filter(pk=coupon.pk).update(used_count=coupon.used_count + 1)
 
         for ci in cart.items.select_related("product"):
             p = ci.product

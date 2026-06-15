@@ -117,10 +117,21 @@ img, svg, video { display: block; max-width: 100%; }
 
 /* ── 3 · Typography ────────────────────────────────────────────── */
 .display {
-  font-family: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 0.95;
+  font-family: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  font-weight: 460;
+  /* Let Fraunces refine its letterforms at large sizes (display optical size)
+     while staying crisp at small ones. */
+  font-optical-sizing: auto;
+  /* A touch of softness + just a hint of WONK gives Fraunces its characterful,
+     bespoke feel without tipping into novelty. */
+  font-variation-settings: 'SOFT' 4, 'WONK' 0;
+  letter-spacing: -0.018em;
+  line-height: 0.98;
+}
+.display em {
+  /* Fraunces italic is the showpiece — use it for emphasised words. */
+  font-style: italic;
+  font-variation-settings: 'SOFT' 6, 'WONK' 1;
 }
 /* Fluid display scale — sized with clamp() so it breathes mobile → desktop */
 .h-1 { font-size: clamp(2.75rem, 1rem + 6vw, 6.25rem); }
@@ -666,6 +677,10 @@ img, svg, video { display: block; max-width: 100%; }
 /* Surfaces that used light neutrals. */
 [data-theme="dark"] .bg-neutral-50,
 [data-theme="dark"] .bg-neutral-50\/60 { background-color: var(--c-surface) !important; }
+/* neutral-100 (image placeholders, order-tracker step circles) — keep a
+   subtle surface so light text/numbers stay legible on the dark canvas. */
+[data-theme="dark"] .bg-neutral-100,
+[data-theme="dark"] .bg-neutral-100\/80 { background-color: var(--c-surface-2) !important; }
 [data-theme="dark"] .bg-white { background-color: var(--c-surface) !important; }
 [data-theme="dark"] .bg-white\/90 { background-color: rgba(255,255,255,0.10) !important; }
 [data-theme="dark"] .bg-white\/80 { background-color: rgba(255,255,255,0.08) !important; }
@@ -953,11 +968,11 @@ html[dir="rtl"] body {
 }
 html[lang="ar"] .display,
 html[dir="rtl"] .display {
-  font-family: 'Tajawal', 'Instrument Serif', ui-serif, Georgia, serif;
+  font-family: 'Tajawal', 'Fraunces', ui-serif, Georgia, serif;
   font-weight: 500;
   letter-spacing: 0;
   /* Serif italic fallback for English emphases in Arabic (e.g. brand name
-     still reads in Instrument Serif when wrapped in <em>). */
+     still reads in Fraunces when wrapped in <em>). */
 }
 html[lang="ar"] em,
 html[dir="rtl"] em {

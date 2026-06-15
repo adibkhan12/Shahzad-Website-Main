@@ -109,8 +109,10 @@ export class ChatLauncherComponent {
   openLiveChat() {
     this.close();
     // Tawk_API may not be ready yet if the user clicked very quickly after page load.
-    // Best effort: try maximize, fall through silently otherwise.
+    // The widget is hidden on load (see TawkToComponent), so showWidget() must
+    // run before maximize() — maximize() alone is a no-op on a hidden widget.
     try {
+      window.Tawk_API?.showWidget?.();
       window.Tawk_API?.maximize?.();
     } catch {
       /* ignore */

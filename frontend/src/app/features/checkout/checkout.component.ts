@@ -24,10 +24,11 @@ import { Address, Paginated } from '../../core/models';
             <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">1 · Deliver to</h2>
             <div class="grid grid-cols-2 gap-3">
               <label *ngFor="let r of regions"
-                     class="card p-4 cursor-pointer transition"
-                     [class.border-ink]="form.region === r.value">
+                     class="region-card card p-4 cursor-pointer transition-all duration-200 relative"
+                     [class.region-selected]="form.region === r.value">
                 <input type="radio" [(ngModel)]="form.region" name="region" [value]="r.value"
                        (change)="onRegionChange()" class="hidden" />
+                <span *ngIf="form.region === r.value" class="region-badge">Selected</span>
                 <div class="text-2xl mb-1">{{ r.flag }}</div>
                 <div class="font-medium text-sm">{{ r.label }}</div>
                 <div class="text-xs text-neutral-500 mt-0.5">{{ r.fee }} AED · {{ r.days }} days</div>
@@ -70,7 +71,7 @@ import { Address, Paginated } from '../../core/models';
           <section>
             <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">3 · Payment method</h2>
             <div class="space-y-2">
-              <label *ngFor="let pm of methods"
+              <label *ngFor="let pm of availableMethods()"
                      class="card p-4 flex items-center gap-4 cursor-pointer transition"
                      [class.border-ink]="form.payment_method === pm.value">
                 <input type="radio" [(ngModel)]="form.payment_method" name="payment_method" [value]="pm.value" class="accent-ink" />
@@ -80,6 +81,31 @@ import { Address, Paginated } from '../../core/models';
                 </div>
                 <div class="text-xs text-neutral-400">{{ pm.tag }}</div>
               </label>
+            </div>
+          </section>
+
+          <!-- 4. Coupon -->
+          <section>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">4 · Coupon</h2>
+            <div class="card p-4 space-y-3">
+              <div *ngIf="!coupon()" class="flex gap-2">
+                <input [(ngModel)]="couponInput" name="coupon_input"
+                       (keydown.enter)="$event.preventDefault(); applyCoupon()"
+                       placeholder="Enter coupon code" class="input flex-1 uppercase" />
+                <button type="button" (click)="applyCoupon()"
+                        [disabled]="couponLoading() || !couponInput.trim()"
+                        class="btn-secondary px-5">
+                  {{ couponLoading() ? '…' : 'Apply' }}
+                </button>
+              </div>
+              <div *ngIf="coupon() as c" class="flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-semibold">{{ c.code }} · −{{ (+c.discount_amount).toFixed(2) }} AED</div>
+                  <div class="text-xs text-neutral-500 mt-0.5">{{ c.message }}</div>
+                </div>
+                <button type="button" (click)="removeCoupon()" class="text-xs text-neutral-500 hover:text-ink underline">Remove</button>
+              </div>
+              <div *ngIf="couponError()" class="text-xs text-red-600">{{ couponError() }}</div>
             </div>
           </section>
 
@@ -113,9 +139,9 @@ import { Address, Paginated } from '../../core/models';
               <span class="text-neutral-500">Shipping ({{ form.region }})</span>
               <span>{{ shippingFee().toFixed(2) }} AED</span>
             </div>
-            <div *ngIf="bnplSurcharge() > 0" class="flex justify-between text-amber-700">
-              <span>BNPL service fee (9%)</span>
-              <span>+{{ bnplSurcharge().toFixed(2) }} AED</span>
+            <div *ngIf="discount() > 0" class="flex justify-between" style="color: var(--c-success);">
+              <span>Coupon ({{ coupon()?.code }})</span>
+              <span>−{{ discount().toFixed(2) }} AED</span>
             </div>
           </div>
           <div class="hairline my-4"></div>
@@ -130,6 +156,32 @@ import { Address, Paginated } from '../../core/models';
       </div>
     </div>
   `,
+  styles: [`
+    .region-selected {
+      border-color: var(--c-accent) !important;
+      background: var(--c-accent-mist);
+      box-shadow: 0 0 0 3px var(--c-accent-glow);
+      animation: regionPulse .5s var(--ease);
+    }
+    .region-badge {
+      position: absolute;
+      top: 8px;
+      inset-inline-end: 8px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--c-accent);
+      color: #fff;
+    }
+    @keyframes regionPulse {
+      0%   { transform: scale(1);    box-shadow: 0 0 0 0  var(--c-accent-glow); }
+      60%  { transform: scale(1.03); box-shadow: 0 0 0 10px var(--c-accent-glow); }
+      100% { transform: scale(1);    box-shadow: 0 0 0 3px var(--c-accent-glow); }
+    }
+  `],
 })
 export class CheckoutComponent implements OnInit {
   private api = inject(ApiService);
@@ -159,10 +211,60 @@ export class CheckoutComponent implements OnInit {
     { value: 'KSA', label: 'Saudi Arabia', flag: '🇸🇦', fee: 150, days: '15–20' },
   ];
   methods = [
+    { value: 'card', label: 'Card · Apple Pay · Google Pay', desc: 'Debit, credit, or wallet — secure online payment.', tag: 'Card' },
     { value: 'cod', label: 'Cash on delivery', desc: 'Pay when the driver hands over your order.', tag: 'Default' },
-    { value: 'tamara', label: 'Tamara — pay in 4 (9% service fee)', desc: 'Split into 4 instalments, interest-free.', tag: 'BNPL' },
-    { value: 'tabby', label: 'Tabby — pay in 4 (9% service fee)', desc: 'Pay 25% now, 25% monthly.', tag: 'BNPL' },
+    { value: 'tamara', label: 'Tamara — pay in 4', desc: 'Split into 4 instalments, interest-free.', tag: 'BNPL' },
+    { value: 'tabby', label: 'Tabby — pay in 4', desc: 'Pay 25% now, 25% monthly.', tag: 'BNPL' },
   ];
+
+  // Coupon state
+  couponInput = '';
+  coupon = signal<{ code: string; discount_amount: string; message: string } | null>(null);
+  couponLoading = signal(false);
+  couponError = signal('');
+
+  applyCoupon() {
+    const code = this.couponInput.trim().toUpperCase();
+    if (!code) return;
+    this.couponLoading.set(true);
+    this.couponError.set('');
+    this.api
+      .post<{ valid: boolean; code?: string; discount_amount?: string; message: string }>(
+        '/coupons/validate/',
+        { code, region: this.form.region },
+      )
+      .subscribe({
+        next: (r) => {
+          this.couponLoading.set(false);
+          if (r.valid && r.code && r.discount_amount) {
+            this.coupon.set({ code: r.code, discount_amount: r.discount_amount, message: r.message });
+            this.couponInput = '';
+          } else {
+            this.couponError.set(r.message || 'Coupon could not be applied.');
+          }
+        },
+        error: (e) => {
+          this.couponLoading.set(false);
+          const body = e?.error || {};
+          this.couponError.set(body.message || body.detail || 'Coupon could not be applied.');
+        },
+      });
+  }
+
+  removeCoupon() {
+    this.coupon.set(null);
+    this.couponError.set('');
+  }
+
+  discount(): number {
+    const c = this.coupon();
+    return c ? Number(c.discount_amount) : 0;
+  }
+
+  // COD is UAE-only — KSA orders ship cross-border so cash isn't supported.
+  availableMethods() {
+    return this.methods.filter((m) => !(this.form.region === 'KSA' && m.value === 'cod'));
+  }
 
   // ----- live order math -----
   subtotal(): number {
@@ -173,15 +275,8 @@ export class CheckoutComponent implements OnInit {
     return this.form.region === 'KSA' ? 150 : 30;
   }
 
-  bnplSurcharge(): number {
-    if (this.form.payment_method === 'tamara' || this.form.payment_method === 'tabby') {
-      return Math.round(this.subtotal() * 9) / 100;
-    }
-    return 0;
-  }
-
   grandTotal(): number {
-    return this.subtotal() + this.shippingFee() + this.bnplSurcharge();
+    return Math.max(0, this.subtotal() + this.shippingFee() - this.discount());
   }
 
   onRegionChange() {
@@ -189,6 +284,13 @@ export class CheckoutComponent implements OnInit {
     // KSA selector only accepts the three allowed cities.
     if (this.form.region === 'KSA' && !this.ksaCities.includes(this.form.city)) {
       this.form.city = '';
+    }
+    if (this.form.region === 'KSA' && this.form.payment_method === 'cod') {
+      this.form.payment_method = this.availableMethods()[0].value;
+    }
+    // Region change can invalidate a region-scoped coupon — re-check.
+    if (this.coupon()) {
+      this.removeCoupon();
     }
   }
 
@@ -222,7 +324,8 @@ export class CheckoutComponent implements OnInit {
 
   submit() {
     this.loading.set(true); this.error.set('');
-    this.api.post<{ reference: string; redirect_url: string }>('/payments/checkout/', this.form).subscribe({
+    const payload = { ...this.form, coupon_code: this.coupon()?.code || '' };
+    this.api.post<{ reference: string; redirect_url: string }>('/payments/checkout/', payload).subscribe({
       next: (r) => {
         this.loading.set(false);
         this.cart.refresh().subscribe();

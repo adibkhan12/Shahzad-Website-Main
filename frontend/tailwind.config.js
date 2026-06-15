@@ -6,7 +6,7 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        serif: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
+        serif: ['"Fraunces"', 'ui-serif', 'Georgia', 'serif'],
       },
       // Keep a small, meaningful palette. CSS variables stay the source of truth;
       // these keys let Tailwind utilities (e.g. `text-ink`, `bg-surface`) resolve.

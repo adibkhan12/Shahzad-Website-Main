@@ -47,8 +47,14 @@ export class TawkToComponent implements OnInit {
     window.Tawk_LoadStart = new Date();
 
     // Hide Tawk's default bubble — our `ChatLauncherComponent` is the single
-    // entry point. The chat panel still opens via Tawk_API.maximize().
+    // entry point. The launcher re-shows + maximizes the widget on demand.
     window.Tawk_API.onLoad = function () {
+      window.Tawk_API?.hideWidget?.();
+    };
+
+    // When the visitor closes/minimizes the chat, hide the bubble again so the
+    // launcher stays the only visible entry point.
+    window.Tawk_API.onChatMinimized = function () {
       window.Tawk_API?.hideWidget?.();
     };
 

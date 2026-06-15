@@ -55,13 +55,24 @@ class Order(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="Tamara/Tabby service fee. 0 for COD.",
+        help_text="Legacy field. Always 0 — BNPL surcharge was removed.",
+    )
+    coupon_code = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Coupon code applied at checkout, if any.",
+    )
+    discount_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="AED discount applied from coupon_code.",
     )
     total = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="subtotal + shipping_fee + bnpl_surcharge",
+        help_text="subtotal + shipping_fee - discount_amount",
     )
 
     # payment
