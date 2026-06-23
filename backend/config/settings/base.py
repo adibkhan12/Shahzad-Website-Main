@@ -145,6 +145,7 @@ if USE_S3:
     AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="eu-north-1")
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False   # ← add this line
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
 
 # Email
