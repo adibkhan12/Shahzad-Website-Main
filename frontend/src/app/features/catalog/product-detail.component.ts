@@ -89,11 +89,13 @@ import { ProductCardComponent } from '../../shared/product-card.component';
               {{ (adding ? 'product.adding' : 'product.addToCart') | translate }}
             </button>
           </div>
+          <!--
           <div class="mt-6 grid grid-cols-3 gap-2 text-xs text-neutral-500">
             <div class="flex items-center gap-2"><span>🚚</span> {{ 'product.freeShipping' | translate }}</div>
             <div class="flex items-center gap-2"><span>🛡️</span> {{ 'product.warrantyShort' | translate }}</div>
             <div class="flex items-center gap-2"><span>↩️</span> {{ 'product.returnsShort' | translate }}</div>
           </div>
+          -->
         </div>
       </div>
 
@@ -176,8 +178,8 @@ export class ProductDetailComponent implements OnInit {
     text: 'Arrived the same day, exactly as described. Battery at 94%, no scratches, sealed in new packaging. Perfect experience.',
   };
   qaForm = {
-    user: 'Hassan R.',
-    question: 'Does this come with a charger in the box?',
+    user: '',
+    question: '',
   };
 
   ngOnInit() {
