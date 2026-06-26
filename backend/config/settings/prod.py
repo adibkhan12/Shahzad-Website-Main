@@ -1,6 +1,11 @@
 from .base import *  # noqa
 
+from django.core.exceptions import ImproperlyConfigured
+
 DEBUG = False
+if "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured("ALLOWED_HOSTS must not contain '*' in production.")
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True

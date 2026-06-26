@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import Address
-from apps.cart.services import merge_guest_cart_into_user
+from apps.cart.services import merge_guest_cart_into_user, normalize_guest_session_key
 
 from .serializers import (
     AddressSerializer,
@@ -27,6 +27,7 @@ def _tokens_for(user):
 
 def _merge_guest_cart(request, user):
     session_key = request.data.get("session_key") or request.headers.get("X-Guest-Session")
+    session_key = normalize_guest_session_key(session_key)
     if session_key:
         merge_guest_cart_into_user(user, session_key)
 

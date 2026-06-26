@@ -16,7 +16,7 @@ import { RepairBooking } from '../../core/models';
       </div>
       <h1 class="display text-4xl mt-6">Booking received.</h1>
       <p class="mt-3 text-neutral-600">Reference: <span class="font-mono text-ink">{{ b.short_ref }}</span></p>
-      <p class="mt-2 text-sm text-neutral-500 max-w-sm mx-auto">We'll contact you on {{ b.phone }} within 2 hours with a quote and next steps.</p>
+      <p *ngIf="b.phone" class="mt-2 text-sm text-neutral-500 max-w-sm mx-auto">We'll contact you on {{ b.phone }} within 2 hours with a quote and next steps.</p>
       <a routerLink="/repairs/status" class="btn-outline mt-8 inline-flex">Check booking status</a>
     </div>
   `,
@@ -28,6 +28,11 @@ export class RepairConfirmComponent implements OnInit {
   ngOnInit() {
     this.route.paramMap.subscribe((p) => {
       const ref = p.get('reference')!;
+      const cached = sessionStorage.getItem(`repair_booking_${ref}`);
+      if (cached) {
+        this.booking.set(JSON.parse(cached));
+        return;
+      }
       this.api.get<RepairBooking>(`/repairs/bookings/${ref}/`).subscribe((b) => this.booking.set(b));
     });
   }

@@ -26,6 +26,7 @@ import { WishlistHeartComponent } from './wishlist-heart.component';
                     dark:from-neutral-900 dark:to-neutral-950 rounded-2xl overflow-hidden">
           <a [routerLink]="['/products', product.slug]" class="block w-full h-full">
             <img *ngIf="product.primary_image" [src]="product.primary_image" [alt]="product.title"
+                 loading="lazy" decoding="async"
                  class="absolute inset-0 w-full h-full object-cover transition-all duration-[1400ms] ease-smooth group-hover:scale-[1.06]" />
             <span class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/0 to-transparent group-hover:from-black/5 transition-all duration-700"></span>
           </a>

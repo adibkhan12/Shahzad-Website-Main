@@ -18,9 +18,18 @@ from .serializers import (
 )
 
 
+def _bounded_limit(value, default=8, maximum=24):
+    try:
+        limit = int(value or default)
+    except (TypeError, ValueError):
+        return default
+    return min(max(1, limit), maximum)
+
+
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.filter(is_active=True)
     serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
 
     @action(detail=False, methods=["get"])
@@ -32,6 +41,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Brand.objects.filter(is_active=True).select_related("category")
     serializer_class = BrandSerializer
+    permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {"category__slug": ["exact"], "category": ["exact"]}
@@ -40,6 +50,7 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Product.objects.filter(is_active=True).select_related("category", "brand")
     lookup_field = "slug"
+    permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
         "brand__slug": ["exact"],
@@ -113,7 +124,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
         from apps.orders.models import OrderItem
 
-        limit = int(request.query_params.get("limit") or 8)
+        limit = _bounded_limit(request.query_params.get("limit"))
         sold_ids = (
             OrderItem.objects.filter(
                 order__status__in=["paid", "shipped", "delivered"],
@@ -151,7 +162,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         """Products across all categories for a given brand name (case-insensitive).
         Matches on brand name so 'apple' returns iPhones, MacBooks, iPads, etc.
         """
-        limit = int(request.query_params.get("limit") or 8)
+        limit = _bounded_limit(request.query_params.get("limit"))
         qs = Product.objects.filter(is_active=True, brand__name__iexact=brand_name).select_related(
             "brand", "category"
         )[:limit]
@@ -242,9 +253,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 class BannerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AdBanner.objects.filter(is_active=True)
     serializer_class = AdBannerSerializer
+    permission_classes = [permissions.AllowAny]
 
 
 class SettingViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingSerializer
+    permission_classes = [permissions.AllowAny]
     lookup_field = "name"

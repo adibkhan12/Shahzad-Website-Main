@@ -1,4 +1,5 @@
 from django.db import transaction
+from uuid import UUID
 
 from .models import Cart, CartItem
 
@@ -18,8 +19,21 @@ def get_or_create_cart(request) -> Cart:
     return cart
 
 
+def normalize_guest_session_key(session_key: str | None) -> str:
+    if not session_key:
+        return ""
+    session_key = str(session_key).strip()
+    if len(session_key) > 64:
+        return ""
+    try:
+        return str(UUID(session_key))
+    except (TypeError, ValueError, AttributeError):
+        return ""
+
+
 @transaction.atomic
 def merge_guest_cart_into_user(user, session_key: str):
+    session_key = normalize_guest_session_key(session_key)
     if not session_key:
         return
     try:

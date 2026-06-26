@@ -103,7 +103,7 @@ export class ProductListComponent implements OnInit {
   category = '';
 
   ngOnInit() {
-    this.api.get<Category[]>('/catalog/categories/roots/').subscribe((c) => this.categories.set(c || []));
+    this.api.getCached<Category[]>('/catalog/categories/roots/').subscribe((c) => this.categories.set(c || []));
     this.route.queryParams.subscribe((p) => {
       this.q = p['q'] || '';
       this.brand = p['brand'] || '';
@@ -115,12 +115,12 @@ export class ProductListComponent implements OnInit {
   }
 
   reloadBrands() {
-    this.api.get<BrandGroup[]>('/catalog/products/brands/').subscribe((b) => this.brands.set(b || []));
+    this.api.getCached<BrandGroup[]>('/catalog/products/brands/').subscribe((b) => this.brands.set(b || []));
   }
 
   load() {
     this.api
-      .get<Paginated<Product>>('/catalog/products/', {
+      .getCached<Paginated<Product>>('/catalog/products/', {
         q: this.q,
         brand__name: this.brand,
         sort: this.sort,

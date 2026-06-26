@@ -1,25 +1,224 @@
+# ==============================================================================
+# Project .gitignore
+# Angular frontend + Django backend
+#
+# Keep source, configuration templates, lockfiles, migrations, and documentation
+# in Git. Exclude generated dependencies, caches, builds, secrets, local runtime
+# files, databases, and machine-specific editor/OS metadata.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Local environment and secrets
+# ------------------------------------------------------------------------------
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+!.env.*.example
+!*.env.example
+!*.env.*.example
+
+# Common local secret/config files
+*.local
+*.secret
+*.secrets
+secrets.*
+local_settings.py
+settings.local.py
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ------------------------------------------------------------------------------
+# Node / Angular dependencies and package manager caches
+# ------------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+
+.angular/
+**/.angular/
+dist/
+**/dist/
+out-tsc/
+**/out-tsc/
+tmp/
+**/tmp/
+bazel-out/
+**/bazel-out/
+
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Angular / frontend test and coverage output
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+karma-debug.log
+testem.log
+libpeerconnection.log
+
+# ------------------------------------------------------------------------------
+# Python bytecode, caches, packaging, and virtual environments
+# ------------------------------------------------------------------------------
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+.Python
+.python-version
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+.pytest_cache/
+**/.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
 .venv/
 venv/
-__pycache__/
-*.pyc
-*.pyo
-.env
-.env.local
+env/
+ENV/
+env.bak/
+venv.bak/
+virtualenv/
+backend/venv/
+backend/.venv/
+frontend/venv/
+frontend/.venv/
+
+pip-wheel-metadata/
+pip-log.txt
+pip-delete-this-directory.txt
+build/
+**/build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ------------------------------------------------------------------------------
+# Django runtime files
+# ------------------------------------------------------------------------------
 db.sqlite3
+*.sqlite3
+*.sqlite3-journal
+*.db
+*.db-journal
+
 media/
+**/media/
 staticfiles/
-.DS_Store
-.idea/
-.vscode/
-node_modules/
+**/staticfiles/
+collected_static/
+**/collected_static/
+
+# Generated static output only. Keep source static files tracked.
 theme/static/
 theme/static_src/node_modules/
+
+# Local uploads, dumps, and backups
+uploads/
+**/uploads/
+backup/
+backups/
+*.bak
+*.backup
+*.dump
+*.sql
+*.sql.gz
+
+# ------------------------------------------------------------------------------
+# Logs, reports, and temporary files
+# ------------------------------------------------------------------------------
 *.log
+logs/
+**/logs/
+log/
+**/log/
+
+*.pid
+*.pid.lock
+*.seed
+*.stackdump
+
+*.tmp
+*.temp
+*.swp
+*.swo
+*.orig
+*.rej
+~*
+
+# ------------------------------------------------------------------------------
+# IDEs, editors, and local tooling
+# ------------------------------------------------------------------------------
+.idea/
+.vscode/
+.history/
+.fleet/
+.zed/
 .qodo/
-.env.prod
-frontend/dist/
-frontend/.angular/
-coverage/
-.pytest_cache/
-*.sqlite3-journal
+
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+.c9/
+*.launch
+
+# ------------------------------------------------------------------------------
+# OS and filesystem metadata
+# ------------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ------------------------------------------------------------------------------
+# Docker / deployment local overrides
+# ------------------------------------------------------------------------------
+docker-compose.override.yml
+docker-compose.*.override.yml
+
+# ------------------------------------------------------------------------------
+# Project-local notes and generated plans
+# ------------------------------------------------------------------------------
 PROJECT_PLAN.md

@@ -64,8 +64,10 @@ import { RevealDirective } from '../../shared/reveal.directive';
                (touchcancel)="onHeroTouchEnd($event)">
             <ng-container *ngIf="featured()[0] as hero">
               <img *ngIf="hero.primary_image" [src]="hero.primary_image" [alt]="hero.title"
+                   loading="eager" decoding="async" fetchpriority="high"
                    class="hero-base absolute inset-0 w-full h-full object-cover" />
               <img *ngIf="hero.primary_image" [src]="hero.primary_image" alt="" aria-hidden="true"
+                   loading="eager" decoding="async"
                    class="hero-desat absolute inset-0 w-full h-full object-cover pointer-events-none" />
               <div class="absolute inset-x-0 bottom-0 p-6 md:p-8 bg-gradient-to-t from-black/70 to-transparent">
                 <div class="eyebrow text-neutral-300">{{ 'home.featuredEyebrow' | translate }}</div>
@@ -349,10 +351,11 @@ export class HomeComponent implements OnInit {
   ngOnInit() {
     // Banners are handled by the lang-reactive effect() in the constructor.
     forkJoin({
-      roots: this.api.get<Category[]>('/catalog/categories/roots/'),
-      featured: this.api.get<Product[]>('/catalog/products/featured/'),
-      bestsellers: this.api.get<Product[]>('/catalog/products/bestsellers/', { limit: 8 }),
-      latest: this.api.get<Paginated<Product>>('/catalog/products/', { ordering: '-created_at' }),
+      roots: this.api.getCached<Category[]>('/catalog/categories/roots/'),
+      featured: this.api.getCached<Product[]>('/catalog/products/featured/'),
+      bestsellers: this.api.getCached<Product[]>('/catalog/products/bestsellers/', { limit: 8 }),
+      latest: this.api.getCached<Paginated<Product>>('/catalog/products/'),
+      brands: this.api.getCached('/catalog/products/brands/'),
     }).subscribe(({ roots, featured, bestsellers, latest }) => {
       this.categories.set(roots || []);
       this.featured.set(featured || []);
@@ -362,7 +365,7 @@ export class HomeComponent implements OnInit {
 
     for (const section of this.brandSections()) {
       this.api
-        .get<Product[]>(`/catalog/products/by-brand/${encodeURIComponent(section.name)}/`, { limit: 4 })
+        .getCached<Product[]>(`/catalog/products/by-brand/${encodeURIComponent(section.name)}/`, { limit: 4 })
         .subscribe((ps) => {
           this.brandSections.update((arr) =>
             arr.map((s) => (s.name === section.name ? { ...s, products: ps || [] } : s)),

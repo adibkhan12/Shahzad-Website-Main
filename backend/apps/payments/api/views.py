@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import jwt
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
@@ -45,6 +46,26 @@ def _apply_payment(order):
     order.save(update_fields=["paid", "status", "updated_at"])
     if order.payment_method != Order.PaymentMethod.COD:
         _decrement_stock(order)
+
+
+def _order_by_reference(reference):
+    try:
+        return Order.objects.select_for_update().filter(reference=reference).first()
+    except (DjangoValidationError, TypeError, ValueError):
+        return None
+
+
+def _safe_order_response(order, request):
+    from apps.orders.api.serializers import OrderSerializer
+
+    if request.user.is_authenticated and order.user_id == request.user.id:
+        return OrderSerializer(order).data
+    return {
+        "reference": str(order.reference),
+        "short_ref": order.short_ref,
+        "status": order.status,
+        "paid": order.paid,
+    }
 
 
 class CheckoutView(APIView):
@@ -176,25 +197,35 @@ class ConfirmView(APIView):
     def post(self, request):
         provider_key = request.data.get("provider")
         reference = request.data.get("reference")
-        order = Order.objects.select_for_update().filter(reference=reference).first()
+        order = _order_by_reference(reference)
         if order is None:
             return Response({"detail": "Order not found."}, status=404)
-        provider = get_provider(provider_key)
+        if provider_key != order.provider:
+            return Response({"detail": "Payment provider does not match this order."}, status=400)
+        try:
+            provider = get_provider(provider_key)
+        except ValueError:
+            return Response({"detail": "Unknown payment provider."}, status=400)
         if provider.verify(order, request):
             _apply_payment(order)
-        from apps.orders.api.serializers import OrderSerializer
-
-        return Response(OrderSerializer(order).data)
+        return Response(_safe_order_response(order, request))
 
 
 class CancelView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        if not request.user.is_authenticated:
+            return Response({"detail": "Payment was cancelled."})
         reference = request.data.get("reference")
-        order = Order.objects.filter(reference=reference).first()
+        try:
+            order = Order.objects.filter(reference=reference, user=request.user).first()
+        except (DjangoValidationError, TypeError, ValueError):
+            order = None
         if order is None:
             return Response({"detail": "Order not found."}, status=404)
+        if order.paid:
+            return Response({"status": order.status})
         order.status = Order.Status.CANCELLED
         order.save(update_fields=["status", "updated_at"])
         return Response({"status": order.status})

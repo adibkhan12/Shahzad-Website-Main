@@ -11,6 +11,7 @@ from .serializers import RepairBookingSerializer, RepairServiceSerializer, Repai
 class RepairServiceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RepairService.objects.all()
     serializer_class = RepairServiceSerializer
+    permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["device", "is_featured"]
@@ -34,7 +35,14 @@ class RepairBookingViewSet(viewsets.GenericViewSet):
 
     def retrieve(self, request, reference=None):
         booking = self.get_object()
-        return Response(self.get_serializer(booking).data)
+        return Response(
+            {
+                "reference": str(booking.reference),
+                "short_ref": booking.short_ref,
+                "status": booking.status,
+                "created_at": booking.created_at,
+            }
+        )
 
     @action(detail=False, methods=["post"])
     def status(self, request):

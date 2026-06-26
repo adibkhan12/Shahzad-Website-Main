@@ -1,9 +1,20 @@
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.catalog.api.serializers import AdBannerSerializer
 from apps.catalog.models import AdBanner, Setting
+
+
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class CsrfTokenView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({"csrfToken": get_token(request)})
 
 
 class SiteConfigView(APIView):

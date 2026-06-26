@@ -64,7 +64,10 @@ export class RepairBookComponent implements OnInit {
     this.error.set('');
     const payload = { ...this.form, service: this.service()?.id || null };
     this.api.post<RepairBooking>('/repairs/bookings/', payload).subscribe({
-      next: (b) => this.router.navigate(['/repairs/confirm', b.reference]),
+      next: (b) => {
+        sessionStorage.setItem(`repair_booking_${b.reference}`, JSON.stringify(b));
+        this.router.navigate(['/repairs/confirm', b.reference]);
+      },
       error: (e) => this.error.set(e?.error?.detail || 'Booking failed.'),
     });
   }

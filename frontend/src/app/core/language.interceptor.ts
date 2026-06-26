@@ -1,5 +1,13 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
+import { environment } from '../../environments/environment';
+
+function isApiRequest(url: string): boolean {
+  const apiUrl = environment.apiUrl.replace(/\/$/, '');
+  if (apiUrl.startsWith('/')) return url.startsWith(apiUrl);
+  return url.startsWith(apiUrl) || url.startsWith('/api/');
+}
+
 /**
  * Stamps every outgoing API request with `Accept-Language: <current>` so
  * the backend serializer can return localized content (e.g. ad banners).
@@ -17,6 +25,8 @@ import { HttpInterceptorFn } from '@angular/common/http';
  * further muddy caching semantics.
  */
 export const languageInterceptor: HttpInterceptorFn = (req, next) => {
+  if (!isApiRequest(req.url)) return next(req);
+
   // Leave translation JSON fetches alone — they're language-agnostic statics.
   if (req.url.includes('/i18n/')) return next(req);
 

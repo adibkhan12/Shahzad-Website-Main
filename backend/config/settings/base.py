@@ -1,7 +1,9 @@
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -16,15 +18,37 @@ if not env_file.exists():
     env_file = BASE_DIR.parent / ".env"
 environ.Env.read_env(env_file)
 
-SECRET_KEY = env("SECRET_KEY", default="insecure-dev-key-change-me")
 DEBUG = env("DEBUG")
+SECRET_KEY = env("SECRET_KEY", default="insecure-dev-key-change-me")
+if not DEBUG and SECRET_KEY == "insecure-dev-key-change-me":
+    raise ImproperlyConfigured("SECRET_KEY must be set in production.")
+
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
     default=["localhost", "127.0.0.1", ".devtunnels.ms"],
 )
+railway_public_domain = env("RAILWAY_PUBLIC_DOMAIN", default="")
+if railway_public_domain and railway_public_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(railway_public_domain)
 SITE_URL = env("SITE_URL", default="http://localhost:8000")
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:4200")
 SITE_ID = 1
+
+
+def _origin_from_url(value: str) -> str | None:
+    parsed = urlparse(value)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _unique_origins(*groups):
+    origins: list[str] = []
+    for group in groups:
+        for origin in group:
+            if origin and origin not in origins:
+                origins.append(origin)
+    return origins
 
 INSTALLED_APPS = [
     "unfold",
@@ -66,6 +90,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -92,16 +117,20 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": {
+database_url = env("DATABASE_URL", default="")
+if database_url:
+    DATABASES = {"default": env.db_url("DATABASE_URL")}
+else:
+    DATABASES = {
+        "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": env("DB_NAME", default="shahzad_ecommerce"),
         "USER": env("DB_USER", default="postgres"),
         "PASSWORD": env("DB_PASSWORD", default="adib"),
         "HOST": env("DB_HOST", default="localhost"),
         "PORT": env("DB_PORT"),
+        },
     }
-}
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -218,9 +247,10 @@ LEGACY_MONGODB_DB = env("LEGACY_MONGODB_DB", default="")
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_FILTER_BACKENDS": [
@@ -242,18 +272,19 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:4200", "http://127.0.0.1:4200"],
+    default=_unique_origins(
+        ["http://localhost:4200", "http://127.0.0.1:4200"],
+        [_origin_from_url(SITE_URL), _origin_from_url(FRONTEND_URL)],
+    ),
 )
-# Allow any devtunnels.ms host so the frontend dev tunnel can talk to the
-# backend dev tunnel regardless of the session-specific subdomain.
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://[a-z0-9-]+\.devtunnels\.ms$",
-    r"^https://[a-z0-9-]+\-\d+\.inc1\.devtunnels\.ms$",
-]
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.devtunnels.ms",
-    "https://*.inc1.devtunnels.ms",
-]
+CORS_ALLOWED_ORIGIN_REGEXES = env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[])
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=_unique_origins(
+        CORS_ALLOWED_ORIGINS,
+        [_origin_from_url(SITE_URL), _origin_from_url(FRONTEND_URL)],
+    ),
+)
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -267,6 +298,11 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
     "x-guest-session",
 ]
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="Lax")
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = env("SESSION_COOKIE_SAMESITE", default="Lax")
 
 # Surface ERROR-level logs from our `apps.*` modules to the runserver console.
 # Without this, calls like logger.error() inside payment providers would be

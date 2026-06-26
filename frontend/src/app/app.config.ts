@@ -17,6 +17,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
 import { languageInterceptor } from './core/language.interceptor';
 import { PrettyMissingTranslationHandler } from './core/missing-translation.handler';
+import { environment } from '../environments/environment';
 
 /**
  * App initialiser that BLOCKS Angular bootstrap until the initial JSON is
@@ -64,6 +65,14 @@ function initTranslationsFactory(t: TranslateService): () => Promise<void> {
   };
 }
 
+function initCsrfFactory(): () => Promise<void> {
+  return () => {
+    if (typeof fetch === 'undefined') return Promise.resolve();
+    const base = environment.apiUrl.replace(/\/$/, '');
+    return fetch(`${base}/core/csrf/`, { credentials: 'include' }).then(() => void 0).catch(() => void 0);
+  };
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -91,6 +100,11 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: initTranslationsFactory,
       deps: [TranslateService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initCsrfFactory,
       multi: true,
     },
   ],
