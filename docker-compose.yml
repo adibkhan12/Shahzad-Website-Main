@@ -25,9 +25,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file: ./backend/.env.prod
+    env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-adib}@db:5432/${POSTGRES_DB:-shahzad_ecommerce}
+      # Override .env values that assume runserver (port 8000) — Docker exposes port 80.
+      SECURE_SSL_REDIRECT: "False"
+      SITE_URL: "http://localhost"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media

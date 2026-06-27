@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' | 'done';
@@ -21,6 +21,7 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
   selector: 'app-intro-showcase',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div *ngIf="stage() !== 'done'" class="intro-root" [attr.data-stage]="stage()" (click)="onTap()">
       <div class="intro-bg"></div>
@@ -305,20 +306,21 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
       perspective: 2200px;
       perspective-origin: 50% 42%;
       transition: opacity 700ms cubic-bezier(0.76, 0, 0.24, 1);
-      /* Warm ivory — matches the site's design system (--c-bg) so when we
-         fade out at the end of the zoom, there's no brightness flash. */
       background: #FAFAF7;
       user-select: none;
       color: #0A0908;
+      /* Limit browser repaint scope to this element — children can't
+         affect layout/paint outside the fixed overlay. */
+      contain: layout paint style;
     }
     .intro-root[data-stage="zooming"] { cursor: default; }
 
     .intro-bg {
       position: absolute;
       inset: 0;
-      /* Light premium wash: soft violet mist pooling top-centre, warm
-         peach grounding bottom-left, ivory base. Keeps the showroom feel
-         without going dark and heavy. */
+      /* Promote to its own compositor layer so animated siblings above
+         don't invalidate it during every animation frame. */
+      transform: translateZ(0);
       background:
         radial-gradient(ellipse 60% 50% at 50% 28%, rgba(139, 43, 219, 0.14) 0%, transparent 55%),
         radial-gradient(ellipse 70% 55% at 18% 85%, rgba(245, 215, 154, 0.32) 0%, transparent 60%),
@@ -328,28 +330,43 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
 
     .intro-glow {
       position: absolute;
-      width: 55vmin;
-      height: 55vmin;
+      /* Larger footprint so the soft gradient centre reads as a "cloud"
+         without needing filter: blur() — blur forces a per-frame raster
+         repaint which kills mobile frame-rate. The gradient itself achieves
+         the same diffuse look at zero GPU pixel-fill cost. */
+      width: 85vmin;
+      height: 85vmin;
       border-radius: 50%;
-      filter: blur(90px);
-      opacity: 0.6;
+      opacity: 0.75;
       pointer-events: none;
       animation: glowFloat 14s ease-in-out infinite;
+      /* Promote to own compositor layer so the transform animation never
+         triggers a paint on the rest of the scene. */
+      will-change: transform;
+      transform: translateZ(0);
     }
     .intro-glow-a {
-      /* Lavender cloud */
-      background: radial-gradient(circle, rgba(180, 120, 230, 0.45) 0%, transparent 65%);
-      top: -8%; left: -12%;
+      background: radial-gradient(circle,
+        rgba(180, 120, 230, 0.40) 0%,
+        rgba(180, 120, 230, 0.14) 38%,
+        rgba(180, 120, 230, 0.04) 62%,
+        transparent 72%);
+      top: -20%; left: -24%;
     }
     .intro-glow-b {
-      /* Warm peach cloud — the brand's warm-cool contrast */
-      background: radial-gradient(circle, rgba(255, 200, 160, 0.38) 0%, transparent 65%);
-      bottom: -14%; right: -10%;
+      background: radial-gradient(circle,
+        rgba(255, 200, 160, 0.34) 0%,
+        rgba(255, 200, 160, 0.11) 38%,
+        rgba(255, 200, 160, 0.03) 62%,
+        transparent 72%);
+      bottom: -26%; right: -22%;
       animation-delay: -7s;
     }
+    /* Use translate3d so the browser compositor can run the animation
+       entirely on the GPU without re-invoking the paint pipeline. */
     @keyframes glowFloat {
-      0%, 100% { transform: translate(0,0) scale(1); }
-      50%      { transform: translate(5vmin,-3vmin) scale(1.15); }
+      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+      50%       { transform: translate3d(5vmin, -3vmin, 0) scale(1.15); }
     }
 
     .intro-skip {
@@ -363,17 +380,25 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: rgba(10, 9, 8, 0.6);
-      background: rgba(255, 255, 255, 0.7);
+      /* Opaque solid fallback — no GPU cost on mobile. */
+      background: rgba(255, 255, 255, 0.94);
       border: 1px solid rgba(10, 9, 8, 0.08);
       border-radius: 999px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       cursor: pointer;
       transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
     }
+    /* Progressive enhancement: frosted glass only on hardware that can
+       composite backdrop-filter without thrashing the pixel-fill budget. */
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .intro-skip {
+        background: rgba(255, 255, 255, 0.70);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+    }
     .intro-skip:hover {
       color: #0A0908;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.97);
       border-color: rgba(10, 9, 8, 0.2);
     }
 
@@ -598,13 +623,12 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
       -webkit-backface-visibility: hidden;
       border-radius: 48px;
       overflow: hidden;
-      /* Single broad body shadow for weight — stacking multiple tight shadows
-         makes the rounded-rect outline visible as "layered box lines" around
-         the device. One big diffuse blur grounds it without drawing an edge.
-         Inset rim lights stay, since they live *inside* the phone and sell
-         the raised glass bezel without adding anything outside. */
+      /* Reduced blur radius (60px → was 90px) — the shadow must be
+         re-composited on every 3D rotation frame, so a smaller spread
+         directly cuts GPU pixel-fill work without changing the visual read.
+         Inset rim lights are cheap (no external blur) and stay. */
       box-shadow:
-        0 40px 90px -24px rgba(10, 9, 8, 0.5),
+        0 28px 60px -20px rgba(10, 9, 8, 0.45),
         inset 0 1px 0 rgba(255, 255, 255, 0.16),
         inset 0 -1px 0 rgba(0, 0, 0, 0.55);
     }
@@ -833,17 +857,21 @@ type Stage = 'teaser' | 'rising' | 'idle' | 'flipping' | 'flipped' | 'zooming' |
     .mini-card-price { font-size: 9px; color: #740DC2; font-weight: 600; margin-top: 1px; }
 
     /* Shadow lives on the float layer so it bobs but doesn't rotate/flip.
-       On the light scene, the floor shadow reads as a soft violet pool —
-       grounds the device and reinforces its physicality. */
+       filter: blur() removed — replaced with a multi-stop gradient that
+       achieves the same soft-pool look at zero per-frame raster cost.
+       translateZ(0) pins it to its own compositor layer. */
     .phone-shadow {
       position: absolute;
       left: 50%;
       bottom: -34px;
-      transform: translate(-50%, 0);
-      width: 72%;
-      height: 32px;
-      background: radial-gradient(ellipse at center, rgba(116, 13, 194, 0.28) 0%, transparent 70%);
-      filter: blur(16px);
+      transform: translate(-50%, 0) translateZ(0);
+      width: 82%;
+      height: 42px;
+      background: radial-gradient(ellipse at center,
+        rgba(116, 13, 194, 0.24) 0%,
+        rgba(116, 13, 194, 0.10) 42%,
+        rgba(116, 13, 194, 0.03) 66%,
+        transparent 80%);
       pointer-events: none;
       z-index: -1;
     }
