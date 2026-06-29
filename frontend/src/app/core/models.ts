@@ -41,6 +41,20 @@ export interface BrandGroup {
   categories: { name: string; slug: string }[];
 }
 
+export interface CatalogProperty {
+  id: number;
+  property_name: string;
+  property_values: string[];
+}
+
+export interface ColorVariantData {
+  id: number;
+  color_name: string;
+  price: string | null;
+  order: number;
+  images: string[];
+}
+
 export interface Product {
   id: number;
   title: string;
@@ -59,8 +73,11 @@ export interface Product {
   category_name?: string;
   is_active: boolean;
   is_featured: boolean;
-  color_variants?: any[];
+  has_color_variants?: boolean;
+  is_price_same?: boolean;
+  color_variants_data?: ColorVariantData[];
   properties?: Record<string, any>;
+  product_properties?: Record<string, string>;
   rating_avg?: number;
   rating_count?: number;
   created_at?: string;

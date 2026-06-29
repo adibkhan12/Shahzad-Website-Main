@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { ApiService } from '../../core/api.service';
-import { BrandGroup, Category, Paginated, Product } from '../../core/models';
+import { BrandGroup, CatalogProperty, Category, Paginated, Product } from '../../core/models';
 import { ProductCardComponent } from '../../shared/product-card.component';
 
 @Component({
@@ -21,6 +21,8 @@ import { ProductCardComponent } from '../../shared/product-card.component';
 
       <div class="grid md:grid-cols-[240px_1fr] gap-10">
         <aside class="space-y-8 md:sticky md:top-24 h-fit">
+
+          <!-- Category filter -->
           <div>
             <div class="eyebrow mb-3">{{ 'productList.category' | translate }}</div>
             <div class="space-y-1">
@@ -34,6 +36,8 @@ import { ProductCardComponent } from '../../shared/product-card.component';
               </button>
             </div>
           </div>
+
+          <!-- Brand filter -->
           <div>
             <div class="eyebrow mb-3">{{ 'productList.brand' | translate }}</div>
             <div class="space-y-0.5">
@@ -64,6 +68,31 @@ import { ProductCardComponent } from '../../shared/product-card.component';
               </div>
             </div>
           </div>
+
+          <!-- Dynamic property filters -->
+          <div *ngFor="let prop of filterOptions()" class="space-y-1">
+            <div class="eyebrow mb-3">{{ prop.property_name }}</div>
+            <button (click)="clearPropertyFilter(prop.property_name)"
+                    [class.text-ink]="!activeFilters()[prop.property_name]"
+                    [class.font-medium]="!activeFilters()[prop.property_name]"
+                    class="block text-sm text-neutral-500 hover:text-ink transition">All</button>
+            <button *ngFor="let val of prop.property_values"
+                    (click)="setPropertyFilter(prop.property_name, val)"
+                    [class.text-ink]="activeFilters()[prop.property_name] === val"
+                    [class.font-medium]="activeFilters()[prop.property_name] === val"
+                    class="block text-sm text-neutral-500 hover:text-ink transition">
+              {{ val }}
+            </button>
+          </div>
+
+          <!-- Clear all active property filters -->
+          <div *ngIf="hasActiveFilters()">
+            <button (click)="clearAllPropertyFilters()"
+                    class="text-xs text-red-500 hover:text-red-700 transition underline">
+              Clear all filters
+            </button>
+          </div>
+
         </aside>
 
         <section>
@@ -96,19 +125,33 @@ export class ProductListComponent implements OnInit {
   products = signal<Product[]>([]);
   categories = signal<Category[]>([]);
   brands = signal<BrandGroup[]>([]);
+  filterOptions = signal<CatalogProperty[]>([]);
   total = signal(0);
+  activeFilters = signal<Record<string, string>>({});
+
   q = '';
-  brand = '';        // holds the brand NAME (e.g. "Apple") — filters use brand__name
+  brand = '';
   sort = '';
   category = '';
 
+  hasActiveFilters = computed(() => Object.keys(this.activeFilters()).length > 0);
+
   ngOnInit() {
     this.api.getCached<Category[]>('/catalog/categories/roots/').subscribe((c) => this.categories.set(c || []));
+    this.api.getCached<CatalogProperty[]>('/catalog/properties/filter-options/').subscribe((opts) =>
+      this.filterOptions.set(opts || [])
+    );
     this.route.queryParams.subscribe((p) => {
       this.q = p['q'] || '';
       this.brand = p['brand'] || '';
       this.sort = p['sort'] || '';
       this.category = p['category'] || '';
+      // Extract active property filters from URL: prop_Color=Red → {Color: 'Red'}
+      const filters: Record<string, string> = {};
+      Object.keys(p).forEach((key) => {
+        if (key.startsWith('prop_')) filters[key.slice(5)] = p[key];
+      });
+      this.activeFilters.set(filters);
       this.reloadBrands();
       this.load();
     });
@@ -119,12 +162,18 @@ export class ProductListComponent implements OnInit {
   }
 
   load() {
+    const propParams: Record<string, string> = {};
+    Object.entries(this.activeFilters()).forEach(([name, value]) => {
+      propParams[`prop_${name}`] = value;
+    });
+
     this.api
       .getCached<Paginated<Product>>('/catalog/products/', {
         q: this.q,
         brand__name: this.brand,
         sort: this.sort,
         category__slug: this.category,
+        ...propParams,
       })
       .subscribe((r) => {
         this.products.set(r.results || []);
@@ -150,5 +199,27 @@ export class ProductListComponent implements OnInit {
 
   setParam(key: string, value: string) {
     this.router.navigate([], { queryParams: { [key]: value || null }, queryParamsHandling: 'merge' });
+  }
+
+  setPropertyFilter(propName: string, value: string) {
+    this.router.navigate([], {
+      queryParams: { [`prop_${propName}`]: value },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  clearPropertyFilter(propName: string) {
+    this.router.navigate([], {
+      queryParams: { [`prop_${propName}`]: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  clearAllPropertyFilters() {
+    const nullParams: Record<string, null> = {};
+    Object.keys(this.activeFilters()).forEach((name) => {
+      nullParams[`prop_${name}`] = null;
+    });
+    this.router.navigate([], { queryParams: nullParams, queryParamsHandling: 'merge' });
   }
 }

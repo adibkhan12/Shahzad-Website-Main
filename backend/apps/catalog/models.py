@@ -110,6 +110,11 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0)
     color_variants = models.JSONField(default=list, blank=True)
     properties = models.JSONField(default=dict, blank=True)
+    product_properties = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Key-value map of dynamic properties, e.g. {"Color": "Red", "Material": "Cotton"}.',
+    )
 
     brand = models.ForeignKey(
         Brand,
@@ -127,6 +132,14 @@ class Product(models.Model):
         help_text="Uncheck to hide from storefront without deleting.",
     )
     is_featured = models.BooleanField(default=False)
+    has_color_variants = models.BooleanField(
+        default=False,
+        help_text="Enable per-color image sets and optional per-color pricing.",
+    )
+    is_price_same = models.BooleanField(
+        default=True,
+        help_text="When color variants are on, uncheck this to give each color its own price.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -173,8 +186,44 @@ class Product(models.Model):
         return self.title
 
 
+class ColorVariant(models.Model):
+    """A per-color variant of a product — carries optional pricing and its own images."""
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="color_variants_data"
+    )
+    color_name = models.CharField(
+        max_length=100,
+        help_text="Color label or hex code, e.g. Red or #FF0000.",
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Leave blank to inherit the product's main price.",
+    )
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "color_name"]
+        verbose_name = "Color Variant"
+        verbose_name_plural = "Color Variants"
+
+    def __str__(self):
+        return self.color_name
+
+
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="uploaded_images")
+    color_variant = models.ForeignKey(
+        ColorVariant,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="images",
+        verbose_name="Color variant",
+    )
     image = models.ImageField(upload_to="products/")
     alt = models.CharField(max_length=200, blank=True)
     order = models.PositiveIntegerField(default=0)
@@ -288,6 +337,27 @@ class HomePage(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class CatalogProperty(models.Model):
+    """Global registry of product property names and their allowed values.
+
+    property_name  — e.g. "Color", "Material", "Storage"
+    property_values — list of globally known values for that property,
+                      auto-expanded when a product is saved with a new value.
+    """
+
+    property_name = models.CharField(max_length=100, unique=True)
+    property_values = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = "catalog_properties"
+        verbose_name = "Property"
+        verbose_name_plural = "Properties"
+        ordering = ["property_name"]
+
+    def __str__(self):
+        return self.property_name
 
 
 class AdBanner(models.Model):

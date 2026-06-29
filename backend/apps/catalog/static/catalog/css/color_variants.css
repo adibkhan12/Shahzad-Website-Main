@@ -1,0 +1,46 @@
+/* ── Color Variants admin widget ── */
+
+/* The Color Variants inline is hidden by JS when the checkbox is off.
+   Explicitly declare it as hidden by default so there's no flash before
+   the JS runs (only when has_color_variants is already False on load). */
+#color_variants_data-group[style*="none"],
+#colorvariant_set-group[style*="none"] {
+  display: none;
+}
+
+/* Price column in the Color Variants inline:
+   hidden by JS when "Is price same?" is ON (the default). */
+#color_variants_data-group .column-price,
+#color_variants_data-group .field-price,
+#colorvariant_set-group .column-price,
+#colorvariant_set-group .field-price {
+  /* JS toggles display; no default override here so the column
+     shows correctly on initial load for products where is_price_same=False. */
+}
+
+/* Color-variant column in the Images inline:
+   hidden when has_color_variants is OFF. */
+.column-color_variant,
+.field-color_variant {
+  /* JS controls display; this rule prevents any "flash" by giving
+     the column a smooth transition when it appears. */
+  transition: opacity 0.15s;
+}
+
+/* Highlight the color-variant select so it's visually distinct
+   from other dropdowns in the image inline. */
+.field-color_variant select {
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 3px 6px;
+  color: #4f46e5;
+  border-color: #c4b5fd;
+  background: #faf5ff;
+}
+
+/* Color Variants inline — give each row a subtle left accent */
+#color_variants_data-group .form-row,
+#colorvariant_set-group .form-row {
+  border-left: 3px solid #c4b5fd;
+  padding-left: 8px;
+}

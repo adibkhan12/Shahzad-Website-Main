@@ -1,7 +1,7 @@
 from django.db.models import Avg, Count
 from rest_framework import serializers
 
-from apps.catalog.models import QA, AdBanner, Brand, Category, Product, Review, Setting
+from apps.catalog.models import QA, AdBanner, Brand, CatalogProperty, Category, ColorVariant, Product, Review, Setting
 
 
 def _abs(request, url: str) -> str:
@@ -72,6 +72,22 @@ class QASerializer(serializers.ModelSerializer):
         extra_kwargs = {"product": {"required": False}}
 
 
+class ColorVariantSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ColorVariant
+        fields = ["id", "color_name", "price", "order", "images"]
+
+    def get_images(self, obj) -> list[str]:
+        request = self.context.get("request")
+        return [
+            _abs(request, img.image.url)
+            for img in obj.images.order_by("order", "id")
+            if img.image
+        ]
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     primary_image = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
@@ -124,6 +140,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)
     rating_avg = serializers.SerializerMethodField()
     rating_count = serializers.SerializerMethodField()
+    color_variants_data = ColorVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -139,8 +156,11 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "images",
             "primary_image",
             "stock",
-            "color_variants",
+            "has_color_variants",
+            "is_price_same",
+            "color_variants_data",
             "properties",
+            "product_properties",
             "brand",
             "category",
             "is_active",
@@ -214,3 +234,9 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = ["name", "value", "updated_at"]
+
+
+class CatalogPropertySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CatalogProperty
+        fields = ["id", "property_name", "property_values"]

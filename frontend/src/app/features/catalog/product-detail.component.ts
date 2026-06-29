@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -7,7 +7,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { CartService } from '../../core/cart.service';
-import { Product, QA, Review } from '../../core/models';
+import { ColorVariantData, Product, QA, Review } from '../../core/models';
 import { ProductCardComponent } from '../../shared/product-card.component';
 
 @Component({
@@ -34,8 +34,8 @@ import { ProductCardComponent } from '../../shared/product-card.component';
             <span *ngIf="p.on_sale"
                   class="absolute top-4 start-4 px-3 py-1 text-[10px] uppercase tracking-wider bg-ink text-white rounded-full">{{ 'product.sale' | translate }}</span>
           </div>
-          <div *ngIf="(p.images?.length || 0) > 1" class="flex gap-2.5 mt-4">
-            <button *ngFor="let img of p.images" (click)="activeImage.set(img)"
+          <div *ngIf="displayImages().length > 1" class="flex gap-2.5 mt-4 flex-wrap">
+            <button *ngFor="let img of displayImages()" (click)="activeImage.set(img)"
                     class="w-16 h-16 rounded-xl overflow-hidden border-2 transition"
                     [class.border-ink]="activeImage()===img" [class.border-transparent]="activeImage()!==img">
               <img [src]="img" class="w-full h-full object-cover" />
@@ -57,15 +57,20 @@ import { ProductCardComponent } from '../../shared/product-card.component';
             <span class="text-neutral-400">· {{ ratingCount() }} {{ 'product.reviews' | translate }}</span>
           </div>
           <div class="mt-6 flex items-baseline gap-3">
-            <ng-container *ngIf="p.on_sale; else regularDetail">
-              <span class="text-3xl font-semibold text-red-600">{{ p.sale_price }} {{ 'common.currency' | translate }}</span>
-              <span class="line-through text-neutral-400">{{ p.price }}</span>
-              <span class="chip !bg-red-50 !text-red-700">
-                {{ 'product.save' | translate: { amount: (+p.price - +(p.sale_price || 0)).toFixed(0) } }}
-              </span>
+            <ng-container *ngIf="hasVariantPrice(); else defaultPrice">
+              <span class="text-3xl font-semibold">{{ selectedVariant()!.price }} {{ 'common.currency' | translate }}</span>
             </ng-container>
-            <ng-template #regularDetail>
-              <span class="text-3xl font-semibold">{{ p.price }} {{ 'common.currency' | translate }}</span>
+            <ng-template #defaultPrice>
+              <ng-container *ngIf="p.on_sale; else regularDetail">
+                <span class="text-3xl font-semibold text-red-600">{{ p.sale_price }} {{ 'common.currency' | translate }}</span>
+                <span class="line-through text-neutral-400">{{ p.price }}</span>
+                <span class="chip !bg-red-50 !text-red-700">
+                  {{ 'product.save' | translate: { amount: (+p.price - +(p.sale_price || 0)).toFixed(0) } }}
+                </span>
+              </ng-container>
+              <ng-template #regularDetail>
+                <span class="text-3xl font-semibold">{{ p.price }} {{ 'common.currency' | translate }}</span>
+              </ng-template>
             </ng-template>
           </div>
           <div class="mt-4 text-sm">
@@ -76,6 +81,35 @@ import { ProductCardComponent } from '../../shared/product-card.component';
             <span *ngIf="p.stock === 0" class="text-red-600">{{ 'product.outOfStock' | translate }}</span>
           </div>
           <p class="mt-6 text-neutral-600 leading-relaxed">{{ p.description }}</p>
+
+          <!-- Dynamic product properties (specifications) -->
+          <div *ngIf="propertyEntries().length" class="mt-6 border border-neutral-100 rounded-2xl overflow-hidden">
+            <div class="bg-neutral-50 px-4 py-2.5 border-b border-neutral-100">
+              <span class="eyebrow text-xs">Specifications</span>
+            </div>
+            <dl class="divide-y divide-neutral-100">
+              <div *ngFor="let entry of propertyEntries()"
+                   class="flex items-center px-4 py-2.5 text-sm">
+                <dt class="w-36 flex-shrink-0 text-neutral-500">{{ entry.key }}</dt>
+                <dd class="font-medium text-ink">{{ entry.value }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Color variant selector -->
+          <div *ngIf="p.has_color_variants && p.color_variants_data?.length" class="mt-6">
+            <p class="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">Color</p>
+            <div class="flex flex-wrap gap-2">
+              <button *ngFor="let v of p.color_variants_data"
+                      (click)="selectVariant(v)"
+                      class="px-4 py-1.5 rounded-full border text-sm font-medium transition"
+                      [ngClass]="selectedVariant()?.id === v.id
+                        ? 'border-ink bg-ink text-white'
+                        : 'border-neutral-200 text-neutral-700 hover:border-neutral-400'">
+                {{ v.color_name }}
+              </button>
+            </div>
+          </div>
 
           <div class="mt-8 flex items-center gap-3">
             <div class="flex items-center border border-neutral-200 rounded-full overflow-hidden bg-white">
@@ -170,6 +204,25 @@ export class ProductDetailComponent implements OnInit {
   related = signal<Product[]>([]);
   ratingAvg = signal(0);
   ratingCount = signal(0);
+  selectedVariant = signal<ColorVariantData | null>(null);
+
+  propertyEntries = computed(() => {
+    const props = this.product()?.product_properties;
+    if (!props) return [];
+    return Object.entries(props).map(([key, value]) => ({ key, value: String(value) }));
+  });
+
+  displayImages = computed(() => {
+    const v = this.selectedVariant();
+    if (v && v.images.length) return v.images;
+    return this.product()?.images ?? [];
+  });
+
+  hasVariantPrice = computed(() => {
+    const p = this.product();
+    const v = this.selectedVariant();
+    return !!(p?.has_color_variants && !p?.is_price_same && v?.price != null);
+  });
   qty = 1;
   adding = false;
   reviewForm = {
@@ -189,7 +242,12 @@ export class ProductDetailComponent implements OnInit {
   load(slug: string) {
     this.api.get<Product>(`/catalog/products/${slug}/`).subscribe((p) => {
       this.product.set(p);
-      this.activeImage.set(p.primary_image || '');
+      const firstVariant = p.has_color_variants && p.color_variants_data?.length
+        ? p.color_variants_data[0]
+        : null;
+      this.selectedVariant.set(firstVariant);
+      const firstImg = firstVariant?.images?.[0] ?? p.primary_image ?? '';
+      this.activeImage.set(firstImg);
       this.ratingAvg.set(p.rating_avg || 0);
       this.ratingCount.set(p.rating_count || 0);
     });
@@ -206,6 +264,11 @@ export class ProductDetailComponent implements OnInit {
       next: () => (this.adding = false),
       error: () => (this.adding = false),
     });
+  }
+
+  selectVariant(v: ColorVariantData) {
+    this.selectedVariant.set(v);
+    this.activeImage.set(v.images?.[0] ?? this.product()?.primary_image ?? '');
   }
 
   submitReview() {

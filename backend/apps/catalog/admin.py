@@ -1,3 +1,6 @@
+import json
+
+from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count
 from django.utils.html import format_html
@@ -20,7 +23,9 @@ from .models import (
     QA,
     AdBanner,
     Brand,
+    CatalogProperty,
     Category,
+    ColorVariant,
     HomePage,
     Product,
     ProductImage,
@@ -28,6 +33,64 @@ from .models import (
     Setting,
     StockMovement,
 )
+
+
+# ---------- Custom form widgets ----------
+
+
+class CommaSeparatedValuesWidget(forms.Textarea):
+    """Displays a JSON list as human-readable comma-separated text."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("attrs", {}).update(
+            {"rows": 3, "placeholder": "Red, Blue, Green, ..."}
+        )
+        super().__init__(*args, **kwargs)
+
+    def format_value(self, value):
+        if isinstance(value, list):
+            return ", ".join(str(v) for v in value)
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return ", ".join(str(v) for v in parsed)
+            except Exception:
+                pass
+        return value or ""
+
+
+class CatalogPropertyAdminForm(forms.ModelForm):
+    property_values = forms.CharField(
+        widget=CommaSeparatedValuesWidget,
+        required=False,
+        label="Values (comma-separated)",
+        help_text="Type each allowed value separated by a comma. New values added via products are appended automatically.",
+    )
+
+    class Meta:
+        model = CatalogProperty
+        fields = ["property_name", "property_values"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields["property_values"].initial = ", ".join(
+                str(v) for v in (self.instance.property_values or [])
+            )
+        else:
+            self.fields["property_values"].initial = ""
+
+    def clean_property_values(self):
+        raw = self.cleaned_data.get("property_values", "")
+        seen: set[str] = set()
+        unique: list[str] = []
+        for v in (v.strip() for v in raw.split(",") if v.strip()):
+            key = v.lower()
+            if key not in seen:
+                seen.add(key)
+                unique.append(v)
+        return unique
 
 # ---------- Import/Export Resource ----------
 
@@ -72,11 +135,31 @@ class ProductResource(resources.ModelResource):
 # ---------- Inlines ----------
 
 
+class ColorVariantInline(TabularInline):
+    """One row per color — shows price column only when 'Is price same?' is off (controlled by JS)."""
+
+    model = ColorVariant
+    extra = 1
+    fields = ("color_name", "price", "order")
+    ordering = ("order", "color_name")
+    verbose_name = "Color Variant"
+    verbose_name_plural = "Color Variants"
+
+
 class ProductImageInline(TabularInline):
     model = ProductImage
     extra = 1
-    fields = ("image", "alt", "order", "preview")
+    fields = ("image", "color_variant", "alt", "order", "preview")
     readonly_fields = ("preview",)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "color_variant":
+            obj_id = request.resolver_match.kwargs.get("object_id")
+            if obj_id:
+                kwargs["queryset"] = ColorVariant.objects.filter(product_id=obj_id)
+            else:
+                kwargs["queryset"] = ColorVariant.objects.none()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def preview(self, obj):
         if obj.pk and obj.image:
@@ -266,6 +349,18 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
     export_form_class = ExportForm
     resource_classes = [ProductResource]
 
+    class Media:
+        js = (
+            "catalog/js/product_properties.js",
+            "catalog/js/color_variants.js",
+        )
+        css = {
+            "all": (
+                "catalog/css/product_properties.css",
+                "catalog/css/color_variants.css",
+            )
+        }
+
     list_display = (
         "thumb",
         "title",
@@ -286,7 +381,7 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
     list_display_links = ("thumb", "title")
     list_per_page = 30
     autocomplete_fields = ("category", "brand")
-    inlines = [ProductImageInline, StockMovementInline]
+    inlines = [ColorVariantInline, ProductImageInline, StockMovementInline]
     save_on_top = True
     fieldsets = (
         (None, {"fields": ("title", "slug", "description")}),
@@ -315,8 +410,28 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
             },
         ),
         (
-            "Variants & properties",
-            {"fields": ("color_variants", "properties"), "classes": ("collapse",)},
+            "Product Properties",
+            {
+                "fields": ("product_properties",),
+                "description": (
+                    "Use <strong>＋ Add Property</strong> to pick an existing global property "
+                    "or type a brand-new name to create one. Values auto-complete from the "
+                    "<a href='/admin/catalog/catalogproperty/'>Properties</a> registry; anything "
+                    "new you type is saved there automatically when the product is saved."
+                ),
+            },
+        ),
+        (
+            "Color Variants",
+            {
+                "fields": ("has_color_variants", "is_price_same"),
+                "description": (
+                    "Check <strong>Enable color variants</strong> to unlock the Color Variants "
+                    "panel below. Add one row per color; each color can have its own images "
+                    "assigned in the Images section. Uncheck <strong>Is price same?</strong> "
+                    "to enter a separate price per color."
+                ),
+            },
         ),
     )
     actions = [
@@ -332,10 +447,7 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
     ]
 
     def save_model(self, request, obj, form, change):
-        """
-        Log every stock change made via the admin (change page or list_editable
-        inline edit) into StockMovement, with the user who did it.
-        """
+        """Log stock changes and back-propagate new property values to CatalogProperty."""
         delta = 0
         if change and obj.pk:
             try:
@@ -351,6 +463,16 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
                 note="Inline edit via admin",
                 user=request.user if request.user.is_authenticated else None,
             )
+        # Auto-expand CatalogProperty.property_values with any newly typed values.
+        if isinstance(obj.product_properties, dict):
+            for prop_name, prop_value in obj.product_properties.items():
+                if not prop_name or not prop_value:
+                    continue
+                prop, _ = CatalogProperty.objects.get_or_create(property_name=prop_name)
+                str_value = str(prop_value).strip()
+                if str_value and str_value not in prop.property_values:
+                    prop.property_values.append(str_value)
+                    prop.save(update_fields=["property_values"])
 
     def thumb(self, obj):
         url = obj.primary_image
@@ -560,6 +682,56 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
                 "opts": self.model._meta,
             },
         )
+
+
+# ---------- CatalogProperty ----------
+
+
+@admin.register(CatalogProperty)
+class CatalogPropertyAdmin(ModelAdmin):
+    """Global property name + allowed-values registry.
+
+    The 'Values' textarea accepts a comma-separated list.  New values typed
+    into product forms are appended here automatically when a product is saved.
+    """
+
+    form = CatalogPropertyAdminForm
+    list_display = ("property_name", "values_preview", "value_count")
+    search_fields = ("property_name",)
+    save_on_top = True
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("property_name", "property_values"),
+                "description": (
+                    "Add a new property name (e.g. <strong>Color</strong>) and the values "
+                    "that are globally allowed for it.  Values entered on the product form "
+                    "are appended here automatically."
+                ),
+            },
+        ),
+    )
+
+    def values_preview(self, obj):
+        vals = obj.property_values or []
+        chips = "".join(
+            format_html(
+                '<span style="display:inline-block;padding:1px 8px;margin:1px;border-radius:999px;'
+                'background:#f3e8ff;color:#5b0a99;font-size:11px">{}</span>',
+                v,
+            )
+            for v in vals[:8]
+        )
+        more = f" +{len(vals)-8} more" if len(vals) > 8 else ""
+        return format_html("{}{}", chips, more)
+
+    values_preview.short_description = "Allowed values"
+
+    def value_count(self, obj):
+        return len(obj.property_values or [])
+
+    value_count.short_description = "# Values"
 
 
 # ---------- Banners & misc ----------

@@ -4,11 +4,12 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.catalog.models import AdBanner, Brand, Category, HomePage, Product, Setting
+from apps.catalog.models import AdBanner, Brand, CatalogProperty, Category, HomePage, Product, Setting
 
 from .serializers import (
     AdBannerSerializer,
     BrandSerializer,
+    CatalogPropertySerializer,
     CategorySerializer,
     ProductDetailSerializer,
     ProductListSerializer,
@@ -73,6 +74,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # Prefetch colour-variant images for detail view to avoid N+1 queries.
+        if self.action == "retrieve":
+            qs = qs.prefetch_related("color_variants_data__images")
         params = self.request.query_params
         q = params.get("q", "").strip()
         if q:
@@ -86,6 +90,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.order_by("-price")
         elif sort == "name_asc":
             qs = qs.order_by("title")
+        # Dynamic property filters: ?prop_Color=Red&prop_Material=Cotton
+        for key in params:
+            if key.startswith("prop_"):
+                prop_name = key[5:]
+                prop_value = params[key]
+                if prop_name and prop_value:
+                    qs = qs.filter(product_properties__contains={prop_name: prop_value})
         return qs
 
     @action(detail=False, methods=["get"])
@@ -261,3 +272,55 @@ class SettingViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SettingSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "name"
+
+
+class CatalogPropertyViewSet(viewsets.ModelViewSet):
+    """CRUD for global property definitions.
+
+    Read operations (list, retrieve, filter_options) are public so the storefront
+    sidebar and the admin JS widget can fetch them without authentication.
+    Write operations require admin/staff privileges.
+    """
+
+    queryset = CatalogProperty.objects.all()
+    serializer_class = CatalogPropertySerializer
+    pagination_class = None  # always return the full list
+
+    def get_permissions(self):
+        if self.action in ("create", "update", "partial_update", "destroy", "add_value"):
+            return [permissions.IsAdminUser()]
+        return [permissions.AllowAny()]
+
+    @action(detail=True, methods=["post"], url_path="add-value")
+    def add_value(self, request, pk=None):
+        """Append a single new string value if it is not already present."""
+        prop = self.get_object()
+        value = (request.data.get("value") or "").strip()
+        if value and value not in prop.property_values:
+            prop.property_values.append(value)
+            prop.save(update_fields=["property_values"])
+        return Response(CatalogPropertySerializer(prop).data)
+
+    @action(detail=False, methods=["get"], url_path="filter-options")
+    def filter_options(self, request):
+        """Aggregate unique property names and values actually used by active products.
+
+        This drives the storefront sidebar filter — it only shows properties that
+        at least one product carries, so there are no empty filter options.
+        """
+        result: dict[str, set] = {}
+        for props in Product.objects.filter(is_active=True).values_list(
+            "product_properties", flat=True
+        ):
+            if not isinstance(props, dict):
+                continue
+            for name, value in props.items():
+                if name and value:
+                    result.setdefault(name, set()).add(str(value))
+
+        return Response(
+            [
+                {"property_name": name, "property_values": sorted(values)}
+                for name, values in sorted(result.items())
+            ]
+        )
