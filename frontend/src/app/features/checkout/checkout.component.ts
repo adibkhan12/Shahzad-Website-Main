@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
@@ -11,11 +11,24 @@ import { Address, Paginated } from '../../core/models';
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="container-x py-12 max-w-5xl">
       <div class="eyebrow">Checkout</div>
       <h1 class="display text-4xl md:text-5xl mt-1 mb-10">Complete your order</h1>
+
+      <!-- Guest sign-in nudge -->
+      <div *ngIf="!auth.user()"
+           class="mb-8 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+        <span class="text-lg">👤</span>
+        <span>
+          To keep a record of your order and track it anytime,
+          <a routerLink="/login" class="font-semibold underline underline-offset-2 hover:text-amber-900">sign in</a>
+          or
+          <a routerLink="/register" class="font-semibold underline underline-offset-2 hover:text-amber-900">create an account</a>.
+          You can still checkout as a guest below.
+        </span>
+      </div>
 
       <div class="grid md:grid-cols-[1fr_380px] gap-10">
         <form (ngSubmit)="submit()" class="space-y-8">
@@ -190,15 +203,14 @@ export class CheckoutComponent implements OnInit {
   auth = inject(AuthService);
 
   addresses = signal<Address[]>([]);
-  // Seeded sample address — overridden by logged-in user's saved address when available.
   form: any = {
-    name: 'Ahmed Karim',
-    email: 'ahmed.karim@example.ae',
-    phone: '+971501234567',
-    address_line1: 'Rolla Square, Al Wahda St',
-    address_line2: 'Building 42, Apt 7',
-    city: 'Sharjah',
-    postal_code: '00000',
+    name: '',
+    email: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    postal_code: '',
     country: 'UAE',
     region: 'UAE',
     payment_method: 'cod',

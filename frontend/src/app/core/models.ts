@@ -75,6 +75,7 @@ export interface Product {
   is_featured: boolean;
   has_color_variants?: boolean;
   is_price_same?: boolean;
+  is_box_packed?: boolean;
   color_variants_data?: ColorVariantData[];
   properties?: Record<string, any>;
   product_properties?: Record<string, string>;

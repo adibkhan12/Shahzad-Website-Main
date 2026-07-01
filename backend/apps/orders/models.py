@@ -15,6 +15,7 @@ class Order(models.Model):
 
     class PaymentMethod(models.TextChoices):
         COD = "cod", "Cash on delivery"
+        CARD = "card", "Card / Apple Pay / Google Pay"
         TAMARA = "tamara", "Tamara"
         TABBY = "tabby", "Tabby"
 

@@ -207,9 +207,27 @@ export class ProductDetailComponent implements OnInit {
   selectedVariant = signal<ColorVariantData | null>(null);
 
   propertyEntries = computed(() => {
-    const props = this.product()?.product_properties;
-    if (!props) return [];
-    return Object.entries(props).map(([key, value]) => ({ key, value: String(value) }));
+    const p = this.product();
+    const v = this.selectedVariant();
+    const raw = p?.product_properties ?? {};
+    const result: { key: string; value: string }[] = [];
+    let hasColorKey = false;
+
+    for (const [key, value] of Object.entries(raw)) {
+      if (key === 'Color' && p?.has_color_variants && v) {
+        result.push({ key, value: v.color_name });
+        hasColorKey = true;
+      } else {
+        result.push({ key, value: String(value) });
+      }
+    }
+
+    // Append Color dynamically if not already in product_properties
+    if (p?.has_color_variants && v && !hasColorKey) {
+      result.push({ key: 'Color', value: v.color_name });
+    }
+
+    return result;
   });
 
   displayImages = computed(() => {
@@ -226,9 +244,9 @@ export class ProductDetailComponent implements OnInit {
   qty = 1;
   adding = false;
   reviewForm = {
-    user: 'Layla M.',
+    user: '',
     rating: 5,
-    text: 'Arrived the same day, exactly as described. Battery at 94%, no scratches, sealed in new packaging. Perfect experience.',
+    text: '',
   };
   qaForm = {
     user: '',

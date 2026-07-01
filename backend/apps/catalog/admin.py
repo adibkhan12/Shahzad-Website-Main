@@ -15,8 +15,9 @@ try:
 except ImportError:
     ImportExportModelAdmin = ModelAdmin
 
-from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.forms import inlineformset_factory
+from django.http import HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .models import (
@@ -358,6 +359,7 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
             "all": (
                 "catalog/css/product_properties.css",
                 "catalog/css/color_variants.css",
+                "catalog/css/product_toggles.css",
             )
         }
 
@@ -385,22 +387,28 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
     save_on_top = True
     fieldsets = (
         (None, {"fields": ("title", "slug", "description")}),
-        (
-            "Hierarchy",
-            {
-                "fields": ("category", "brand"),
-                "description": "Pick a category first, then a brand. Brands are listed with their linked category in the dropdown.",
-            },
-        ),
+        ("Hierarchy", {"fields": ("category", "brand")}),
         (
             "Pricing",
             {
                 "fields": ("price", "sale_price"),
-                "description": "Leave <b>Sale price</b> empty for full price. Enter a lower value to put on sale (price will be struck through).",
+                "description": "Leave <b>Sale price</b> empty for full price.",
             },
         ),
-        ("Inventory", {"fields": ("stock", "is_active")}),
-        ("Display", {"fields": ("is_featured",)}),
+        ("Inventory", {"fields": ("stock",)}),
+        (
+            "Options",
+            {
+                "fields": (
+                    "is_active",
+                    "is_featured",
+                    "is_box_packed",
+                    "has_color_variants",
+                    "is_price_same",
+                ),
+                "classes": ("product-toggles",),
+            },
+        ),
         (
             "Media (legacy URLs)",
             {
@@ -416,20 +424,7 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
                 "description": (
                     "Use <strong>＋ Add Property</strong> to pick an existing global property "
                     "or type a brand-new name to create one. Values auto-complete from the "
-                    "<a href='/admin/catalog/catalogproperty/'>Properties</a> registry; anything "
-                    "new you type is saved there automatically when the product is saved."
-                ),
-            },
-        ),
-        (
-            "Color Variants",
-            {
-                "fields": ("has_color_variants", "is_price_same"),
-                "description": (
-                    "Check <strong>Enable color variants</strong> to unlock the Color Variants "
-                    "panel below. Add one row per color; each color can have its own images "
-                    "assigned in the Images section. Uncheck <strong>Is price same?</strong> "
-                    "to enter a separate price per color."
+                    "<a href='/admin/catalog/catalogproperty/'>Properties</a> registry."
                 ),
             },
         ),
@@ -446,8 +441,62 @@ class ProductAdmin(ImportExportModelAdmin, ModelAdmin):
         "duplicate",
     ]
 
+    _TOGGLE_FIELDS = ('is_active', 'is_featured', 'is_box_packed', 'has_color_variants', 'is_price_same')
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for name in self._TOGGLE_FIELDS:
+            if name in form.base_fields:
+                form.base_fields[name].help_text = ''
+        return form
+
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom = [
+            path(
+                '<int:product_id>/save-color-variants/',
+                self.admin_site.admin_view(self.save_color_variants_view),
+                name='catalog_product_save_color_variants',
+            ),
+        ]
+        return custom + urls
+
+    def save_color_variants_view(self, request, product_id):
+        """AJAX endpoint — saves only the color variant inline without touching the rest of the product form."""
+        if request.method != 'POST':
+            return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+        product = get_object_or_404(Product, pk=product_id)
+        ColorVariantFormSet = inlineformset_factory(
+            Product,
+            ColorVariant,
+            fields=('color_name', 'price', 'order'),
+            extra=0,
+            can_delete=True,
+        )
+        formset = ColorVariantFormSet(
+            request.POST,
+            instance=product,
+            prefix='color_variants_data',
+        )
+        if formset.is_valid():
+            formset.save()
+            variants = list(
+                ColorVariant.objects.filter(product=product)
+                .order_by('order', 'color_name')
+                .values('id', 'color_name')
+            )
+            return JsonResponse({'ok': True, 'variants': variants})
+        non_empty_errors = [e for e in formset.errors if e]
+        return JsonResponse({'ok': False, 'errors': non_empty_errors}, status=400)
+
     def save_model(self, request, obj, form, change):
         """Log stock changes and back-propagate new property values to CatalogProperty."""
+        # Keep the 'Type' property in sync with is_box_packed before saving.
+        if not isinstance(obj.product_properties, dict):
+            obj.product_properties = {}
+        obj.product_properties['Type'] = 'Box-packed' if obj.is_box_packed else 'Used'
+
         delta = 0
         if change and obj.pk:
             try:

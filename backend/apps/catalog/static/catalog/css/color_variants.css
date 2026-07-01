@@ -44,3 +44,12 @@
   border-left: 3px solid #c4b5fd;
   padding-left: 8px;
 }
+
+/* Save Color Variants button */
+#cv-save-btn:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+#cv-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

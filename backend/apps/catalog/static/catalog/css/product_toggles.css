@@ -1,0 +1,42 @@
+/* ── Options fieldset — compact boolean pill toggles ──────────────────
+   The .cv-toggle-pill class is added by color_variants.js at runtime so
+   these rules work regardless of the admin theme (unfold, stock, etc.).
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Individual boolean wrapper — layout only, no background/border/card */
+.cv-toggle-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  white-space: nowrap;
+  width: auto !important;
+  min-width: 0 !important;
+  flex-shrink: 0 !important;
+  float: none !important;
+  /* Strip any theme padding/margin that stretches the wrapper */
+  padding: 0 !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Label — compact, inline, no float */
+.cv-toggle-pill label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  float: none !important;
+  line-height: 1.2 !important;
+  cursor: pointer;
+}
+
+/* is_price_same is hidden by default; JS shows it only when has_color_variants is on */
+.cv-price-same-pill {
+  display: none !important;
+}

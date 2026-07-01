@@ -65,9 +65,8 @@ export class LoginComponent implements OnInit {
   private cart = inject(CartService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  // Seeded for quick preview — use these creds or clear and enter your own.
-  email = 'demo@shahzad.ae';
-  password = 'Demo1234!';
+  email = '';
+  password = '';
   loading = signal(false);
   error = signal('');
   googleClientId = environment.googleClientId;

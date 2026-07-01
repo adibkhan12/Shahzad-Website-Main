@@ -209,11 +209,22 @@ TABBY_API_URL = env("TABBY_API_URL", default="")
 TABBY_SECRET_KEY = env("TABBY_SECRET_KEY", default="")
 TABBY_API_URL_UAE = env("TABBY_API_URL_UAE", default="https://api.tabby.ai")
 TABBY_SECRET_KEY_UAE = env("TABBY_SECRET_KEY_UAE", default="")
+TABBY_PUBLIC_KEY_UAE = env("TABBY_PUBLIC_KEY_UAE", default="")
+TABBY_MERCHANT_CODE_UAE = env("TABBY_MERCHANT_CODE_UAE", default="AE")
 TABBY_API_URL_KSA = env("TABBY_API_URL_KSA", default="https://api.tabby.sa")
 TABBY_SECRET_KEY_KSA = env("TABBY_SECRET_KEY_KSA", default="")
+TABBY_PUBLIC_KEY_KSA = env("TABBY_PUBLIC_KEY_KSA", default="")
+TABBY_MERCHANT_CODE_KSA = env("TABBY_MERCHANT_CODE_KSA", default="SA")
 # Shared secret you set when registering the Tabby webhook; sent back as the
 # value of the X-Webhook-Auth header on every webhook delivery.
 TABBY_WEBHOOK_SECRET = env("TABBY_WEBHOOK_SECRET", default="")
+
+# Stripe — card / Apple Pay / Google Pay
+# Secret key goes server-side only; publishable key is safe for the frontend.
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
+# Webhook signing secret from the Stripe dashboard (Developers → Webhooks).
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 
 # Region-specific shipping. Currency stays AED for both for now.
 SHIPPING = {

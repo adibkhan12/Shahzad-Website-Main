@@ -86,13 +86,12 @@ export class RegisterComponent implements OnInit {
   private auth = inject(AuthService);
   private cart = inject(CartService);
   private router = inject(Router);
-  // Seeded sample so the form looks full out of the gate; clear fields to register your own.
   form: any = {
-    email: 'ahmed.karim@example.ae',
-    password: 'StrongPass1!',
-    first_name: 'Ahmed',
-    last_name: 'Karim',
-    referral_source: 'instagram',
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    referral_source: '',
     referral_other: '',
   };
   loading = signal(false);

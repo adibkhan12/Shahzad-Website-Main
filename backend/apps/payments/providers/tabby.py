@@ -10,23 +10,21 @@ from .base import PaymentProvider, PaymentStart, frontend_return_urls
 # Source: https://docs.tabby.ai/pay-in-4-custom-integration/payment-statuses.md
 PAID_STATUSES = {"AUTHORIZED", "CLOSED"}
 
-# Tabby has separate API hosts and keys per region.
-# Source: https://docs.tabby.ai/api-reference/payments/retrieve-a-payment.md
-MERCHANT_CODE = {"UAE": "AE", "KSA": "SA"}
-
 logger = logging.getLogger(__name__)
 
 
-def _config_for(region: str) -> tuple[str, str]:
-    """Return (api_url, secret_key) for the given region, with fallbacks."""
+def _config_for(region: str) -> tuple[str, str, str]:
+    """Return (api_url, secret_key, merchant_code) for the given region."""
     if region == "KSA":
         return (
             settings.TABBY_API_URL_KSA or "https://api.tabby.sa",
             settings.TABBY_SECRET_KEY_KSA or settings.TABBY_SECRET_KEY,
+            settings.TABBY_MERCHANT_CODE_KSA or "SA",
         )
     return (
         settings.TABBY_API_URL_UAE or settings.TABBY_API_URL or "https://api.tabby.ai",
         settings.TABBY_SECRET_KEY_UAE or settings.TABBY_SECRET_KEY,
+        settings.TABBY_MERCHANT_CODE_UAE or "AE",
     )
 
 
@@ -34,7 +32,7 @@ class TabbyProvider(PaymentProvider):
     key = "tabby"
 
     def start(self, order, request):
-        base, secret = _config_for(order.region)
+        base, secret, merchant_code = _config_for(order.region)
         urls = frontend_return_urls(order)
         if not base or not secret:
             return PaymentStart(redirect_url=urls["success"], provider_ref="sandbox")
@@ -63,7 +61,7 @@ class TabbyProvider(PaymentProvider):
                 },
             },
             "lang": "en",
-            "merchant_code": MERCHANT_CODE.get(order.region, "AE"),
+            "merchant_code": merchant_code,
             "merchant_urls": {
                 "success": urls["success"],
                 "cancel": urls["cancel"],
@@ -120,7 +118,7 @@ class TabbyProvider(PaymentProvider):
         """
         if not order.provider_ref:
             return False
-        base, secret = _config_for(order.region)
+        base, secret, _ = _config_for(order.region)
         if not base or not secret:
             return False
         try:

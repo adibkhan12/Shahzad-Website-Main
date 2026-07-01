@@ -317,4 +317,23 @@ def webhook(request, provider):
         body, code = _process_payment_webhook("tabby", provider_ref)
         return Response(body, status=code)
 
+    if provider == "stripe":
+        import stripe as _stripe
+
+        webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+        if not webhook_secret:
+            return Response({"detail": "Stripe webhook not configured."}, status=500)
+        sig = request.headers.get("Stripe-Signature", "")
+        _stripe.api_key = settings.STRIPE_SECRET_KEY
+        try:
+            event = _stripe.Webhook.construct_event(request.body, sig, webhook_secret)
+        except (_stripe.SignatureVerificationError, ValueError):
+            return Response({"detail": "Invalid Stripe signature."}, status=400)
+        if event["type"] == "checkout.session.completed":
+            session = event["data"]["object"]
+            provider_ref = session.get("id")
+            body, code = _process_payment_webhook("card", provider_ref)
+            return Response(body, status=code)
+        return Response({"detail": "Event ignored."}, status=200)
+
     return Response({"detail": f"Unknown provider {provider!r}."}, status=404)

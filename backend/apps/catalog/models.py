@@ -132,6 +132,11 @@ class Product(models.Model):
         help_text="Uncheck to hide from storefront without deleting.",
     )
     is_featured = models.BooleanField(default=False)
+    is_box_packed = models.BooleanField(
+        default=False,
+        help_text='Check for new / box-packed items. Uncheck for used / open-box. '
+                  'Automatically keeps the "Type" property in sync.',
+    )
     has_color_variants = models.BooleanField(
         default=False,
         help_text="Enable per-color image sets and optional per-color pricing.",

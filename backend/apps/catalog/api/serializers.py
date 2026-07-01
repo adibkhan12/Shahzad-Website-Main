@@ -158,6 +158,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "stock",
             "has_color_variants",
             "is_price_same",
+            "is_box_packed",
             "color_variants_data",
             "properties",
             "product_properties",
